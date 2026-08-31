@@ -1,7 +1,7 @@
 // Configuración global del frontend
 const CONFIG = {
     // URL del backend en Railway
-    API_URL: 'https://tu-backend-production.up.railway.app/api',
+    API_URL: 'https://monitoreo-hidrico-backend.onrender.com/api',
     
     // Para desarrollo local, comentar la línea anterior y descomentar:
     // API_URL: 'http://localhost:3000/api',
