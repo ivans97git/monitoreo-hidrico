@@ -1,17 +1,33 @@
 const { Pool } = require('pg');
 require('dotenv').config();
 
-const pool = new Pool({
-    host: process.env.DB_HOST,
-    port: process.env.DB_PORT || 5432,
-    database: process.env.DB_NAME,
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    family: 4,              // Fuerza IPv4
-    ssl: {
-        rejectUnauthorized: false
-    }
-});
+// Si DATABASE_URL está definida, extraer sus partes
+let poolConfig = {};
+
+if (process.env.DATABASE_URL) {
+    const url = new URL(process.env.DATABASE_URL);
+    poolConfig = {
+        host: url.hostname,
+        port: url.port || 5432,
+        database: url.pathname.substring(1),
+        user: url.username,
+        password: url.password,
+        family: 4, // Forzar IPv4
+        ssl: { rejectUnauthorized: false }
+    };
+} else {
+    poolConfig = {
+        host: process.env.DB_HOST,
+        port: process.env.DB_PORT || 5432,
+        database: process.env.DB_NAME,
+        user: process.env.DB_USER,
+        password: process.env.DB_PASSWORD,
+        family: 4,
+        ssl: { rejectUnauthorized: false }
+    };
+}
+
+const pool = new Pool(poolConfig);
 
 module.exports = { query: (text, params) => pool.query(text, params), pool };
 
