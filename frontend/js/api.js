@@ -22,7 +22,7 @@ class API {
     async request(endpoint, options = {}) {
         const url = `${this.baseURL}${endpoint}`;
         const token = this.getToken();
-        
+    
         const headers = {
             'Content-Type': 'application/json',
             ...(token && { 'Authorization': `Bearer ${token}` }),
@@ -30,20 +30,19 @@ class API {
         };
 
         try {
-            const response = await fetch(url, {
-                ...options,
-                headers
-            });
+            const response = await fetch(url, { ...options, headers });
 
-            if (response.status === 401) {
+            // Si es 401 y NO es login, entonces sesión expirada
+            if (response.status === 401 && !endpoint.includes('/auth/login')) {
                 this.clearToken();
                 window.location.href = 'login.html';
                 throw new Error('Sesión expirada');
             }
 
+            // Para cualquier otro error, leer el mensaje del backend
             if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.error || 'Error en la solicitud');
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.error || 'Error en la solicitud');
             }
 
             return await response.json();
