@@ -14,13 +14,11 @@ const medicionesRoutes = require('./routes/mediciones');
 const alertasRoutes = require('./routes/alertas');
 const contactosRoutes = require('./routes/contactos');
 
-// Middleware de seguridad
-app.use(helmet());
 
 // Configurar CORS para GitHub Pages
 const corsOptions = {
     origin: [
-        'https://TU_USUARIO.github.io',
+        'https://ivans97git.github.io',
         'http://localhost:8080',
         'http://127.0.0.1:8080',
         'http://localhost:3000'
@@ -30,7 +28,13 @@ const corsOptions = {
     credentials: true,
     maxAge: 86400
 };
+
+app.options('*', cors(corsOptions));
 app.use(cors(corsOptions));
+
+
+// Middleware de seguridad
+app.use(helmet());
 
 // Rate limiting
 const limiter = rateLimit({
