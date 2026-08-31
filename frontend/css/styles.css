@@ -1,0 +1,203 @@
+/* Estilos globales */
+:root {
+    --primary-color: #0066cc;
+    --success-color: #28a745;
+    --warning-color: #ffc107;
+    --danger-color: #dc3545;
+    --dark-color: #343a40;
+    --light-color: #f8f9fa;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f5f5f5;
+}
+
+/* Pantalla de carga */
+.loading-screen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.95);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+}
+
+/* Login */
+.login-body {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.login-container {
+    width: 100%;
+    max-width: 400px;
+    padding: 20px;
+}
+
+.login-card {
+    background: white;
+    border-radius: 15px;
+    padding: 30px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+}
+
+/* Layout principal */
+.main-container {
+    height: calc(100vh - 56px);
+    padding: 0;
+}
+
+.sidebar {
+    background: white;
+    border-right: 1px solid #dee2e6;
+    padding: 0;
+    overflow-y: auto;
+    height: 100%;
+}
+
+.map-container {
+    position: relative;
+    padding: 0;
+}
+
+#map {
+    width: 100%;
+    height: 100%;
+    min-height: 500px;
+}
+
+/* Leyenda del mapa */
+.map-legend {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    background: white;
+    padding: 15px;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    z-index: 1000;
+}
+
+.map-legend h6 {
+    margin-bottom: 10px;
+    font-weight: bold;
+}
+
+/* Información de estación */
+.station-info {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: white;
+    padding: 15px;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    z-index: 1000;
+    max-width: 300px;
+}
+
+/* Formularios */
+.form-control:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.2rem rgba(0,102,204,0.25);
+}
+
+.btn-primary {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.btn-primary:hover {
+    background-color: #0052a3;
+    border-color: #0052a3;
+}
+
+/* Alertas */
+.alerta-item {
+    border-left: 4px solid var(--warning-color);
+    margin-bottom: 10px;
+}
+
+.alerta-critica {
+    border-left: 4px solid var(--danger-color);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .sidebar {
+        height: 50vh;
+        border-right: none;
+        border-bottom: 1px solid #dee2e6;
+    }
+    
+    .map-container {
+        height: 50vh;
+    }
+    
+    #map {
+        min-height: 300px;
+    }
+}
+
+/* Animaciones */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.fade-in {
+    animation: fadeIn 0.3s ease-in;
+}
+
+/* Popup del mapa */
+.popup-estacion {
+    padding: 10px;
+}
+
+.popup-estacion h6 {
+    margin-bottom: 5px;
+    color: var(--primary-color);
+}
+
+.popup-estacion p {
+    margin-bottom: 5px;
+    font-size: 14px;
+}
+
+/* Badges de estado */
+.badge-estado {
+    padding: 5px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.badge-normal {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.badge-alerta {
+    background-color: #fff3cd;
+    color: #856404;
+}
+
+.badge-critico {
+    background-color: #f8d7da;
+    color: #721c24;
+}
