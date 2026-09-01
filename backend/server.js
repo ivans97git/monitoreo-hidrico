@@ -11,14 +11,13 @@ app.set('trust proxy', 1);
 
 const corsOptions = {
     origin: [
-        'https://TU_USUARIO.github.io',
+        'https://ivans97git.github.io',   // sin la ruta /monitoreo-hidrico
         'http://localhost:8080',
         'http://localhost:3000'
     ],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
-    credentials: true,
-    optionsSuccessStatus: 200
+    credentials: true
 };
 app.use(cors(corsOptions));
 app.options('*', cors(corsOptions));
