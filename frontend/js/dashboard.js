@@ -47,7 +47,7 @@ function inicializarFormularios() {
         });
     }
 
-    // Actualizar unidad de medida según tipo
+    // Actualizar unidad de medida según tipo (opcional)
     const selectTipo = document.getElementById('selectTipo');
     if (selectTipo) {
         selectTipo.addEventListener('change', (e) => {
@@ -123,8 +123,34 @@ async function guardarEstacion() {
         }
         cancelarEdicionEstacion();
         await cargarEstaciones();
+        await cargarEstacionesAdmin();
     } catch (error) {
         alert('Error al guardar estación: ' + error.message);
+    }
+}
+
+async function cargarEstacionesAdmin() {
+    try {
+        const estaciones = await api.getEstaciones();
+        const lista = document.getElementById('listaEstaciones');
+        if (!estaciones.length) {
+            lista.innerHTML = '<p class="text-muted">No hay estaciones</p>';
+            return;
+        }
+        lista.innerHTML = estaciones.map(est => `
+            <div class="item-listado d-flex justify-content-between align-items-center">
+                <div>
+                    <strong>${est.nombre}</strong> (${est.tipo})<br>
+                    <small>Alerta: ${est.nivel_alerta || 'N/A'} | Crítico: ${est.nivel_critico || 'N/A'}</small>
+                </div>
+                <div>
+                    <button class="btn btn-sm btn-outline-primary" onclick="editarEstacion(${est.id})"><i class="fas fa-edit"></i></button>
+                    <button class="btn btn-sm btn-outline-danger" onclick="eliminarEstacion(${est.id})"><i class="fas fa-trash"></i></button>
+                </div>
+            </div>
+        `).join('');
+    } catch (error) {
+        console.error('Error cargando estaciones admin:', error);
     }
 }
 
@@ -148,6 +174,7 @@ async function eliminarEstacion(id) {
     try {
         await api.eliminarEstacion(id);
         await cargarEstaciones();
+        await cargarEstacionesAdmin();
     } catch (error) {
         alert('Error al eliminar: ' + error.message);
     }
@@ -158,7 +185,6 @@ function nuevoPoblador() {
     document.getElementById('formPoblador').reset();
     document.getElementById('pobId').value = '';
     document.getElementById('formPoblador').style.display = 'block';
-    // Asegurar que el select de estaciones esté actualizado
     actualizarSelectEstaciones();
 }
 
@@ -185,29 +211,6 @@ async function guardarPoblador() {
         await cargarPobladores();
     } catch (error) {
         alert('Error al guardar poblador: ' + error.message);
-    }
-}
-
-async function editarPoblador(id) {
-    const pobladores = await api.getPobladores();
-    const pob = pobladores.find(p => p.id == id);
-    if (!pob) return;
-    document.getElementById('pobId').value = pob.id;
-    document.getElementById('pobNombre').value = pob.nombre;
-    document.getElementById('pobApellido').value = pob.apellido;
-    document.getElementById('pobTelefono').value = pob.telefono || '';
-    document.getElementById('pobUbicacion').value = pob.ubicacion || '';
-    document.getElementById('pobEstacion').value = pob.estacion_id || '';
-    document.getElementById('formPoblador').style.display = 'block';
-}
-
-async function eliminarPoblador(id) {
-    if (!confirm('¿Eliminar este poblador?')) return;
-    try {
-        await api.eliminarPoblador(id);
-        await cargarPobladores();
-    } catch (error) {
-        alert('Error al eliminar: ' + error.message);
     }
 }
 
@@ -239,33 +242,54 @@ async function cargarPobladores() {
     }
 }
 
-// Cargar lista de estaciones en pestaña de administración
-async function cargarEstacionesAdmin() {
+async function editarPoblador(id) {
+    const pobladores = await api.getPobladores();
+    const pob = pobladores.find(p => p.id == id);
+    if (!pob) return;
+    document.getElementById('pobId').value = pob.id;
+    document.getElementById('pobNombre').value = pob.nombre;
+    document.getElementById('pobApellido').value = pob.apellido;
+    document.getElementById('pobTelefono').value = pob.telefono || '';
+    document.getElementById('pobUbicacion').value = pob.ubicacion || '';
+    document.getElementById('pobEstacion').value = pob.estacion_id || '';
+    document.getElementById('formPoblador').style.display = 'block';
+}
+
+async function eliminarPoblador(id) {
+    if (!confirm('¿Eliminar este poblador?')) return;
     try {
-        const estaciones = await api.getEstaciones();
-        const lista = document.getElementById('listaEstaciones');
-        if (!estaciones.length) {
-            lista.innerHTML = '<p class="text-muted">No hay estaciones</p>';
-            return;
-        }
-        lista.innerHTML = estaciones.map(est => `
-            <div class="item-listado d-flex justify-content-between align-items-center">
-                <div>
-                    <strong>${est.nombre}</strong> (${est.tipo})<br>
-                    <small>Alerta: ${est.nivel_alerta || 'N/A'} | Crítico: ${est.nivel_critico || 'N/A'}</small>
-                </div>
-                <div>
-                    <button class="btn btn-sm btn-outline-primary" onclick="editarEstacion(${est.id})"><i class="fas fa-edit"></i></button>
-                    <button class="btn btn-sm btn-outline-danger" onclick="eliminarEstacion(${est.id})"><i class="fas fa-trash"></i></button>
-                </div>
-            </div>
-        `).join('');
+        await api.eliminarPoblador(id);
+        await cargarPobladores();
     } catch (error) {
-        console.error('Error cargando estaciones admin:', error);
+        alert('Error al eliminar: ' + error.message);
     }
 }
 
-// Mostrar mensajes
+async function cargarAlertas() {
+    try {
+        const alertas = await api.getAlertas({ limite: 10 });
+        const listaAlertas = document.getElementById('listaAlertas');
+        if (!listaAlertas) return;
+        if (!alertas.length) {
+            listaAlertas.innerHTML = '<p class="text-muted">No hay alertas registradas</p>';
+            return;
+        }
+        listaAlertas.innerHTML = alertas.map(alerta => `
+            <div class="list-group-item alerta-item ${alerta.tipo_alerta === 'CRÍTICO' ? 'alerta-critica' : ''}">
+                <div class="d-flex justify-content-between">
+                    <strong>${alerta.nombre_estacion || 'Estación ' + alerta.estacion_id}</strong>
+                    <span class="badge ${alerta.tipo_alerta === 'CRÍTICO' ? 'bg-danger' : 'bg-warning'}">${alerta.tipo_alerta}</span>
+                </div>
+                <small>${new Date(alerta.fecha_generacion || alerta.fecha_envio).toLocaleString()}</small>
+                <p class="mb-0">${alerta.mensaje || ''}</p>
+                ${alerta.archivo_excel ? `<a href="${CONFIG.API_URL.replace('/api','')}/api/descargar/${alerta.archivo_excel}" class="btn btn-sm btn-outline-success mt-1" download>Descargar Excel</a>` : ''}
+            </div>
+        `).join('');
+    } catch (error) {
+        console.error('Error cargando alertas:', error);
+    }
+}
+
 function mostrarMensaje(mensaje, tipo) {
     const div = document.getElementById('mensajeRegistro');
     div.innerHTML = `<div class="alert alert-${tipo} alert-dismissible fade show" role="alert">

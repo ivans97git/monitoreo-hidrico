@@ -17,11 +17,11 @@ async function cargarEstaciones() {
     try {
         const estaciones = await api.getEstaciones();
         estacionesData = estaciones;
-        // Limpiar marcadores
+        // Limpiar marcadores existentes
         Object.values(marcadores).forEach(m => map.removeLayer(m));
         marcadores = {};
         estaciones.forEach(estacion => {
-            const color = obtenerColorEstado(estacion);
+            const color = 'blue'; // Simplificado
             const icono = L.icon({
                 iconUrl: `https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-${color}.png`,
                 shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
@@ -65,10 +65,6 @@ function mostrarInfoEstacion(estacion) {
         <button class="btn btn-sm btn-outline-secondary" onclick="this.parentElement.style.display='none'">Cerrar</button>
     `;
     infoDiv.style.display = 'block';
-}
-
-function obtenerColorEstado(estacion) {
-    return 'blue';
 }
 
 function actualizarSelectEstaciones() {
