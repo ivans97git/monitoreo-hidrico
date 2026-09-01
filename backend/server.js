@@ -82,9 +82,10 @@ app.use('/api/alertas', alertasRoutes);
 app.use('/api/contactos', contactosRoutes);
 
 // Webhook de WhatsApp
-const whatsappService = require('./services/whatsappService');
-app.get('/webhook/whatsapp', whatsappService.verifyWebhook);
-app.post('/webhook/whatsapp', whatsappService.handleWebhook);
+//const whatsappWebService = require('./services/whatsappWebService');
+//const whatsappService = require('./services/whatsappService');
+//app.get('/webhook/whatsapp', whatsappService.verifyWebhook);
+//app.post('/webhook/whatsapp', whatsappService.handleWebhook);
 
 // Manejo de errores 404
 app.use('*', (req, res) => {
