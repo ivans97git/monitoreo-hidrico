@@ -1,5 +1,5 @@
 const CONFIG = {
-    API_URL: 'https://ivans97git.github.io/api', // Reemplazar por la URL real del backend
+    API_URL: 'https://monitoreo-hidrico-backend.onrender.com/api', // Reemplazar por la URL real del backend
     // Para desarrollo local:
     // API_URL: 'http://localhost:3000/api',
     MAPA: {
