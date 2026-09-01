@@ -3,25 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Monitoreo Hidrológico</title>
+    <title>Monitoreo Hidrológico</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
+    <!-- Pantalla de carga -->
     <div id="loadingScreen" class="loading-screen">
-        <div class="spinner-border text-primary" role="status">
-            <span class="visually-hidden">Cargando...</span>
-        </div>
+        <div class="spinner-border text-primary" role="status"></div>
         <p class="mt-3">Cargando sistema...</p>
     </div>
 
+    <!-- Barra de navegación -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
         <div class="container-fluid">
             <a class="navbar-brand" href="#">
-                <i class="fas fa-water me-2"></i>
-                Monitoreo Hidrológico
+                <i class="fas fa-water me-2"></i> Monitoreo Hidrológico
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
@@ -29,10 +28,7 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
                     <li class="nav-item">
-                        <span class="nav-link">
-                            <i class="fas fa-user me-1"></i>
-                            <span id="userName">Usuario</span>
-                        </span>
+                        <span class="nav-link"><i class="fas fa-user me-1"></i><span id="userName">Usuario</span></span>
                     </li>
                     <li class="nav-item">
                         <button class="btn btn-outline-light btn-sm ms-2" onclick="logout()">
@@ -44,8 +40,10 @@
         </div>
     </nav>
 
+    <!-- Contenedor principal -->
     <div class="container-fluid main-container">
         <div class="row">
+            <!-- Panel lateral con pestañas -->
             <div class="col-md-3 sidebar">
                 <ul class="nav nav-tabs" id="mainTabs" role="tablist">
                     <li class="nav-item">
@@ -64,13 +62,19 @@
                         </button>
                     </li>
                     <li class="nav-item">
-                        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#contactos">
-                            <i class="fas fa-users me-1"></i> Contactos
+                        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#estaciones">
+                            <i class="fas fa-map-marker-alt me-1"></i> Estaciones
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#pobladores">
+                            <i class="fas fa-users me-1"></i> Pobladores
                         </button>
                     </li>
                 </ul>
 
                 <div class="tab-content p-3">
+                    <!-- Pestaña Registrar medición -->
                     <div class="tab-pane fade show active" id="mediciones">
                         <h6 class="mb-3">Registrar Medición</h6>
                         <form id="formMedicion">
@@ -93,8 +97,12 @@
                                 <input type="number" class="form-control" id="inputValor" step="0.01" min="0" required>
                             </div>
                             <div class="mb-3">
+                                <label class="form-label">Fecha y hora (opcional)</label>
+                                <input type="datetime-local" class="form-control" id="inputFechaHora">
+                            </div>
+                            <div class="mb-3">
                                 <label class="form-label">Observaciones</label>
-                                <textarea class="form-control" id="inputObservaciones" rows="3"></textarea>
+                                <textarea class="form-control" id="inputObservaciones" rows="2"></textarea>
                             </div>
                             <button type="submit" class="btn btn-primary w-100">
                                 <i class="fas fa-save me-1"></i> Registrar
@@ -103,45 +111,103 @@
                         <div id="mensajeRegistro" class="mt-3"></div>
                     </div>
 
+                    <!-- Pestaña Gráficos -->
                     <div class="tab-pane fade" id="graficos">
-                        <h6 class="mb-3">Historial</h6>
+                        <h6 class="mb-3">Historial de Mediciones</h6>
                         <select class="form-select mb-3" id="selectEstacionGrafico">
                             <option value="">Todas las estaciones</option>
                         </select>
-                        <canvas id="graficoMediciones" height="300"></canvas>
-                        <button class="btn btn-sm btn-outline-primary mt-3" onclick="actualizarGrafico()">
+                        <canvas id="graficoMediciones" height="250"></canvas>
+                        <button class="btn btn-sm btn-outline-primary mt-2" onclick="actualizarGrafico()">
                             <i class="fas fa-sync me-1"></i> Actualizar
                         </button>
                     </div>
 
+                    <!-- Pestaña Alertas -->
                     <div class="tab-pane fade" id="alertas">
                         <h6 class="mb-3">Alertas Recientes</h6>
                         <div id="listaAlertas" class="list-group"></div>
                     </div>
 
-                    <div class="tab-pane fade" id="contactos">
-                        <h6 class="mb-3">Gestionar Contactos</h6>
-                        <form id="formContacto" class="mb-3">
+                    <!-- Pestaña Estaciones -->
+                    <div class="tab-pane fade" id="estaciones">
+                        <h6 class="mb-3">Gestión de Estaciones</h6>
+                        <button class="btn btn-success btn-sm mb-3" onclick="nuevaEstacion()">
+                            <i class="fas fa-plus me-1"></i> Nueva estación
+                        </button>
+                        <div id="listaEstaciones"></div>
+                        <!-- Formulario oculto para crear/editar -->
+                        <form id="formEstacion" style="display:none;" class="mt-3">
+                            <input type="hidden" id="estId">
                             <div class="mb-2">
-                                <input type="text" class="form-control" id="contactoNombre" placeholder="Nombre" required>
+                                <input type="text" class="form-control" id="estNombre" placeholder="Nombre" required>
                             </div>
                             <div class="mb-2">
-                                <input type="tel" class="form-control" id="contactoTelefono" placeholder="Teléfono (con código país)" required>
+                                <input type="number" step="any" class="form-control" id="estLatitud" placeholder="Latitud" required>
                             </div>
                             <div class="mb-2">
-                                <select class="form-select" id="contactoEstacion" required>
-                                    <option value="">Seleccionar estación...</option>
+                                <input type="number" step="any" class="form-control" id="estLongitud" placeholder="Longitud" required>
+                            </div>
+                            <div class="mb-2">
+                                <select class="form-select" id="estTipo" required>
+                                    <option value="rio">Río</option>
+                                    <option value="pluviometrica">Pluviométrica</option>
                                 </select>
                             </div>
-                            <button type="submit" class="btn btn-success w-100">
-                                <i class="fas fa-plus me-1"></i> Agregar Contacto
-                            </button>
+                            <div class="mb-2">
+                                <input type="number" step="0.01" class="form-control" id="estNivelAlerta" placeholder="Nivel de alerta (ej: 3.5)">
+                            </div>
+                            <div class="mb-2">
+                                <input type="number" step="0.01" class="form-control" id="estNivelCritico" placeholder="Nivel crítico (ej: 5.0)">
+                            </div>
+                            <div class="mb-2">
+                                <textarea class="form-control" id="estDescripcion" placeholder="Descripción"></textarea>
+                            </div>
+                            <button type="submit" class="btn btn-primary btn-sm">Guardar</button>
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="cancelarEdicionEstacion()">Cancelar</button>
                         </form>
-                        <div id="listaContactos"></div>
+                    </div>
+
+                    <!-- Pestaña Pobladores -->
+                    <div class="tab-pane fade" id="pobladores">
+                        <h6 class="mb-3">Gestión de Pobladores</h6>
+                        <div class="mb-3">
+                            <select class="form-select" id="selectEstacionPoblador" onchange="cargarPobladores()">
+                                <option value="">Todas las estaciones</option>
+                            </select>
+                        </div>
+                        <button class="btn btn-success btn-sm mb-3" onclick="nuevoPoblador()">
+                            <i class="fas fa-plus me-1"></i> Nuevo poblador
+                        </button>
+                        <div id="listaPobladores"></div>
+                        <!-- Formulario oculto para crear/editar poblador -->
+                        <form id="formPoblador" style="display:none;" class="mt-3">
+                            <input type="hidden" id="pobId">
+                            <div class="mb-2">
+                                <input type="text" class="form-control" id="pobNombre" placeholder="Nombre" required>
+                            </div>
+                            <div class="mb-2">
+                                <input type="text" class="form-control" id="pobApellido" placeholder="Apellido" required>
+                            </div>
+                            <div class="mb-2">
+                                <input type="tel" class="form-control" id="pobTelefono" placeholder="Teléfono (con código país)">
+                            </div>
+                            <div class="mb-2">
+                                <input type="text" class="form-control" id="pobUbicacion" placeholder="Ubicación / Dirección">
+                            </div>
+                            <div class="mb-2">
+                                <select class="form-select" id="pobEstacion" required>
+                                    <option value="">Asignar estación...</option>
+                                </select>
+                            </div>
+                            <button type="submit" class="btn btn-primary btn-sm">Guardar</button>
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="cancelarEdicionPoblador()">Cancelar</button>
+                        </form>
                     </div>
                 </div>
             </div>
 
+            <!-- Mapa -->
             <div class="col-md-9 map-container">
                 <div id="map"></div>
                 <div class="map-legend">
@@ -150,11 +216,12 @@
                     <div><span class="badge bg-warning">●</span> Alerta</div>
                     <div><span class="badge bg-danger">●</span> Crítico</div>
                 </div>
-                <div id="estacionInfo" class="station-info" style="display: none;"></div>
+                <div id="estacionInfo" class="station-info" style="display:none;"></div>
             </div>
         </div>
     </div>
 
+    <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
