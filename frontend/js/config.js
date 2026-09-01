@@ -1,5 +1,5 @@
 const CONFIG = {
-    API_URL: 'https://monitoreo-hidrico-backend.onrender.com/api', // Reemplazar por la URL real del backend
+    API_URL: 'https://monitoreo-hidrico-backend.onrender.com/api',
     // Para desarrollo local:
     // API_URL: 'http://localhost:3000/api',
     MAPA: {
