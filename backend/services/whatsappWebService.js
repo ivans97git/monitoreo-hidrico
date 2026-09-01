@@ -5,9 +5,12 @@ const client = new Client({
     authStrategy: new LocalAuth(),
     puppeteer: {
         headless: true,
+        executablePath: '/usr/bin/google-chrome',   // ruta del Chrome instalado
         args: ['--no-sandbox', '--disable-setuid-sandbox']
     }
 });
+
+
 
 client.on('qr', qr => {
     console.log('📱 Escanea este código QR con tu WhatsApp:');
