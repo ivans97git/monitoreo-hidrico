@@ -1,5 +1,5 @@
 const { query } = require('../config/database');
-const whatsappService = require('./whatsappService');
+const whatsappService = require('./whatsappWebService');
 
 class AlertService {
     async verificarNivelesCriticos(medicion, estacion) {
