@@ -43,10 +43,16 @@ async function cargarEstaciones() {
 }
 
 function crearPopup(estacion) {
+    const ultima = estacion.ultima_medicion !== null ? `${estacion.ultima_medicion}` : 'Sin datos';
+    const fechaUltima = estacion.fecha_ultima_medicion ? new Date(estacion.fecha_ultima_medicion).toLocaleString() : 'N/A';
+    const unidad = estacion.tipo === 'rio' ? 'm' : 'mm';
+
     return `
         <div class="popup-estacion">
             <h6>${estacion.nombre}</h6>
             <p><strong>Tipo:</strong> ${estacion.tipo === 'rio' ? 'Río' : 'Pluviométrica'}</p>
+            <p><strong>Última medición:</strong> ${ultima} ${unidad}</p>
+            <p><strong>Fecha:</strong> ${fechaUltima}</p>
             ${estacion.nivel_alerta ? `<p><strong>Nivel alerta:</strong> ${estacion.nivel_alerta} m</p>` : ''}
             ${estacion.nivel_critico ? `<p><strong>Nivel crítico:</strong> ${estacion.nivel_critico} m</p>` : ''}
             <button class="btn btn-sm btn-primary" onclick="mostrarInfoEstacion(${JSON.stringify(estacion)})">Ver detalles</button>
@@ -56,9 +62,15 @@ function crearPopup(estacion) {
 
 function mostrarInfoEstacion(estacion) {
     const infoDiv = document.getElementById('estacionInfo');
+    const ultima = estacion.ultima_medicion !== null ? estacion.ultima_medicion : 'Sin datos';
+    const fechaUltima = estacion.fecha_ultima_medicion ? new Date(estacion.fecha_ultima_medicion).toLocaleString() : 'N/A';
+    const unidad = estacion.tipo === 'rio' ? 'm' : 'mm';
+
     infoDiv.innerHTML = `
         <h6>${estacion.nombre}</h6>
         <p><strong>Tipo:</strong> ${estacion.tipo}</p>
+        <p><strong>Última medición:</strong> ${ultima} ${unidad}</p>
+        <p><strong>Fecha:</strong> ${fechaUltima}</p>
         <p><strong>Coordenadas:</strong> ${estacion.latitud}, ${estacion.longitud}</p>
         ${estacion.nivel_alerta ? `<p><strong>Alerta:</strong> ${estacion.nivel_alerta}</p>` : ''}
         ${estacion.nivel_critico ? `<p><strong>Crítico:</strong> ${estacion.nivel_critico}</p>` : ''}
