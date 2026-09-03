@@ -102,10 +102,9 @@ router.put('/:id', autenticarToken, autorizarRol('admin'), async (req, res) => {
 // DELETE /api/estaciones/:id - Eliminar estación (soft delete)
 router.delete('/:id', autenticarToken, autorizarRol('admin'), async (req, res) => {
     try {
-        await query('UPDATE estaciones SET activo = false WHERE id = $1', [req.params.id]);
-        res.json({ mensaje: 'Estación desactivada exitosamente' });
+        await query('DELETE FROM estaciones WHERE id = $1', [req.params.id]);
+        res.json({ mensaje: 'Estación eliminada' });
     } catch (error) {
-        console.error('Error eliminando estación:', error);
         res.status(500).json({ error: 'Error al eliminar estación' });
     }
 });
