@@ -99,3 +99,18 @@ function actualizarSelectEstaciones() {
         select.value = current;
     });
 }
+function obtenerColorEstado(estacion) {
+    if (!estacion.ultima_medicion) return 'grey';
+    const valor = parseFloat(estacion.ultima_medicion);
+    if (estacion.tipo === 'rio') {
+        if (estacion.nivel_critico && valor >= estacion.nivel_critico) return 'red';
+        if (estacion.nivel_alerta && valor >= estacion.nivel_alerta) return 'yellow';
+        return 'green';
+    } else if (estacion.tipo === 'pluviometrica') {
+        // Umbrales de lluvia (puedes ajustarlos)
+        if (valor >= 150) return 'red';
+        if (valor >= 100) return 'yellow';
+        return 'green';
+    }
+    return 'blue';
+}
