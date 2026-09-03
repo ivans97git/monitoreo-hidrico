@@ -165,6 +165,9 @@ body {
     margin-bottom: 5px;
     font-size: 14px;
 }
+#graficoMediciones {
+    touch-action: pan-y; /* permite scroll vertical sin arrastrar el mapa */
+}
 
 /* Badges de estado */
 .badge-estado {
