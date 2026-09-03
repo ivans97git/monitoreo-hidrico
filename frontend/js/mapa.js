@@ -55,9 +55,14 @@ function crearPopup(estacion) {
             <p><strong>Fecha:</strong> ${fechaUltima}</p>
             ${estacion.nivel_alerta ? `<p><strong>Nivel alerta:</strong> ${estacion.nivel_alerta} m</p>` : ''}
             ${estacion.nivel_critico ? `<p><strong>Nivel crítico:</strong> ${estacion.nivel_critico} m</p>` : ''}
-            <button class="btn btn-sm btn-primary" onclick="mostrarInfoEstacion(${JSON.stringify(estacion)})">Ver detalles</button>
+            <button class="btn btn-sm btn-primary" onclick="mostrarInfoEstacionById(${estacion.id})">Ver detalles</button>
         </div>
     `;
+}
+
+function mostrarInfoEstacionById(id) {
+    const estacion = estacionesData.find(e => e.id === id);
+    if (estacion) mostrarInfoEstacion(estacion);
 }
 
 function mostrarInfoEstacion(estacion) {
