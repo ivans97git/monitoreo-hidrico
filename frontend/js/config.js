@@ -1,8 +1,8 @@
 const CONFIG = {
     API_URL: 'https://monitoreo-hidrico-backend.onrender.com/api',
     MAPA: {
-        centroInicial: [-25.695, -54.436],
-        zoomInicial: 10,
+        centroInicial: [-27.05, -58.68], // Las Palmas, Chaco
+        zoomInicial: 13,
         tileLayer: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
         atribucion: '© OpenStreetMap contributors'
     },
