@@ -8,7 +8,10 @@ const router = express.Router();
 router.get('/', autenticarToken, async (req, res) => {
     try {
         const { estacion_id } = req.query;
-        let sql = `SELECT p.*, e.nombre as estacion_nombre FROM pobladores p LEFT JOIN estaciones e ON p.estacion_id = e.id WHERE 1=1`;
+        let sql = `SELECT p.*, e.nombre as estacion_nombre 
+                   FROM pobladores p 
+                   LEFT JOIN estaciones e ON p.estacion_id = e.id 
+                   WHERE 1=1`;
         const params = [];
         if (estacion_id) {
             sql += ' AND p.estacion_id = $1';
@@ -18,6 +21,7 @@ router.get('/', autenticarToken, async (req, res) => {
         const result = await query(sql, params);
         res.json(result.rows);
     } catch (error) {
+        console.error('Error obteniendo pobladores:', error);
         res.status(500).json({ error: 'Error al obtener pobladores' });
     }
 });
