@@ -7,23 +7,14 @@ const router = express.Router();
 // GET /api/estaciones - Obtener todas las estaciones
 router.get('/', autenticarToken, async (req, res) => {
     try {
-        const result = await query(
-            `SELECT e.*, 
-                    (SELECT m.valor 
-                     FROM mediciones m 
-                     WHERE m.estacion_id = e.id 
-                     ORDER BY m.fecha_hora DESC 
-                     LIMIT 1) as ultima_medicion,
-                    (SELECT m.fecha_hora 
-                     FROM mediciones m 
-                     WHERE m.estacion_id = e.id 
-                     ORDER BY m.fecha_hora DESC 
-                     LIMIT 1) as fecha_ultima_medicion
-             FROM estaciones e 
-             WHERE e.activo = true
-             ORDER BY e.nombre`
-        );
-
+        const result = await query(`
+            SELECT e.*, 
+                   (SELECT m.valor FROM mediciones m WHERE m.estacion_id = e.id ORDER BY m.fecha_hora DESC LIMIT 1) as ultima_medicion,
+                   (SELECT m.fecha_hora FROM mediciones m WHERE m.estacion_id = e.id ORDER BY m.fecha_hora DESC LIMIT 1) as fecha_ultima_medicion,
+                   (SELECT m.tipo_medicion FROM mediciones m WHERE m.estacion_id = e.id ORDER BY m.fecha_hora DESC LIMIT 1) as tipo_ultima_medicion
+            FROM estaciones e
+            ORDER BY e.nombre
+        `);
         res.json(result.rows);
     } catch (error) {
         console.error('Error obteniendo estaciones:', error);
