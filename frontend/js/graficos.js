@@ -21,19 +21,12 @@ function inicializarGraficos() {
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            animation: {
-                duration: 0 // desactiva animaciones para evitar saltos
-            },
-            hover: {
-                animationDuration: 0, // sin animación al pasar el mouse
-                intersect: false
-            },
+            animation: { duration: 300 },
             plugins: {
                 legend: { display: true, position: 'top' },
-                tooltip: {
-                    mode: 'index',
-                    intersect: false,
-                    animation: false // desactiva animación del tooltip
+                tooltip: { mode: 'index', intersect: false },
+                annotation: {
+                    annotations: {}
                 }
             },
             scales: {
@@ -47,9 +40,6 @@ function inicializarGraficos() {
                     title: { display: true, text: 'Fecha' },
                     ticks: { maxTicksLimit: 10 }
                 }
-            },
-            onHover: (event, chartElement) => {
-                // No hacer nada en hover para evitar redimensionamientos
             }
         }
     });
@@ -59,7 +49,7 @@ function inicializarGraficos() {
 async function actualizarGrafico() {
     try {
         const estacionId = document.getElementById('selectEstacionGrafico').value;
-        const filtros = { limite: 50 };
+        const filtros = { limite: 100 };
         if (estacionId) filtros.estacion_id = estacionId;
 
         const mediciones = await api.getMediciones(filtros);
@@ -70,7 +60,47 @@ async function actualizarGrafico() {
 
         graficoMediciones.data.labels = labels;
         graficoMediciones.data.datasets[0].data = data;
-        graficoMediciones.update('none'); // sin animación
+
+        // Limpiar anotaciones previas
+        graficoMediciones.options.plugins.annotation.annotations = {};
+
+        // Si hay estación seleccionada, buscar sus umbrales y agregar líneas
+        if (estacionId) {
+            const estaciones = await api.getEstaciones();
+            const estacion = estaciones.find(e => e.id == estacionId);
+            if (estacion) {
+                if (estacion.nivel_alerta) {
+                    graficoMediciones.options.plugins.annotation.annotations['lineaAlerta'] = {
+                        type: 'line',
+                        yMin: estacion.nivel_alerta,
+                        yMax: estacion.nivel_alerta,
+                        borderColor: 'orange',
+                        borderWidth: 2,
+                        label: {
+                            content: `Alerta ${estacion.nivel_alerta}`,
+                            position: 'end',
+                            enabled: true
+                        }
+                    };
+                }
+                if (estacion.nivel_critico) {
+                    graficoMediciones.options.plugins.annotation.annotations['lineaCritico'] = {
+                        type: 'line',
+                        yMin: estacion.nivel_critico,
+                        yMax: estacion.nivel_critico,
+                        borderColor: 'red',
+                        borderWidth: 2,
+                        label: {
+                            content: `Crítico ${estacion.nivel_critico}`,
+                            position: 'end',
+                            enabled: true
+                        }
+                    };
+                }
+            }
+        }
+
+        graficoMediciones.update('none');
     } catch (error) {
         console.error('Error actualizando gráfico:', error);
     }
