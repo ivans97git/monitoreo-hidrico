@@ -20,8 +20,9 @@ async function cargarEstaciones() {
         // Limpiar marcadores existentes
         Object.values(marcadores).forEach(m => map.removeLayer(m));
         marcadores = {};
+
         estaciones.forEach(estacion => {
-            const color = 'blue'; // Simplificado
+            const color = obtenerColorEstado(estacion);
             const icono = L.icon({
                 iconUrl: `https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-${color}.png`,
                 shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
@@ -36,22 +37,57 @@ async function cargarEstaciones() {
             marcador.on('click', () => mostrarInfoEstacion(estacion));
             marcadores[estacion.id] = marcador;
         });
+
         actualizarSelectEstaciones();
+        if (typeof cargarEstacionesAdmin === 'function') cargarEstacionesAdmin();
     } catch (error) {
         console.error('Error cargando estaciones:', error);
     }
 }
 
+function obtenerColorEstado(estacion) {
+    if (estacion.ultima_medicion === null || estacion.ultima_medicion === undefined) {
+        return 'grey';
+    }
+    const valor = parseFloat(estacion.ultima_medicion);
+    if (estacion.tipo === 'rio') {
+        if (estacion.nivel_critico && valor >= parseFloat(estacion.nivel_critico)) return 'red';
+        if (estacion.nivel_alerta && valor >= parseFloat(estacion.nivel_alerta)) return 'yellow';
+        return 'green';
+    } else if (estacion.tipo === 'pluviometrica') {
+        if (valor >= 150) return 'red';
+        if (valor >= 100) return 'yellow';
+        return 'green';
+    }
+    return 'blue'; // fallback
+}
+
+function obtenerTendencia(estacion) {
+    const ultima = parseFloat(estacion.ultima_medicion);
+    const anterior = parseFloat(estacion.medicion_anterior);
+    if (isNaN(ultima) || isNaN(anterior) || ultima === anterior) {
+        return { flecha: '–', color: 'blue', diferencia: null };
+    }
+    const diff = ultima - anterior;
+    if (diff > 0) {
+        return { flecha: '↑', color: 'red', diferencia: diff.toFixed(2) };
+    } else {
+        return { flecha: '↓', color: 'green', diferencia: Math.abs(diff).toFixed(2) };
+    }
+}
+
 function crearPopup(estacion) {
-    const ultima = estacion.ultima_medicion !== null ? `${estacion.ultima_medicion}` : 'Sin datos';
+    const ultima = estacion.ultima_medicion !== null ? estacion.ultima_medicion : 'Sin datos';
     const fechaUltima = estacion.fecha_ultima_medicion ? new Date(estacion.fecha_ultima_medicion).toLocaleString() : 'N/A';
     const unidad = estacion.tipo === 'rio' ? 'm' : 'mm';
+    const tendencia = obtenerTendencia(estacion);
+    const tendenciaHTML = `<span style="color:${tendencia.color}; font-size:1.2em;">${tendencia.flecha}</span>${tendencia.diferencia ? ` (${tendencia.diferencia})` : ''}`;
 
     return `
         <div class="popup-estacion">
             <h6>${estacion.nombre}</h6>
             <p><strong>Tipo:</strong> ${estacion.tipo === 'rio' ? 'Río' : 'Pluviométrica'}</p>
-            <p><strong>Última medición:</strong> ${ultima} ${unidad}</p>
+            <p><strong>Última medición:</strong> ${ultima} ${unidad} ${tendenciaHTML}</p>
             <p><strong>Fecha:</strong> ${fechaUltima}</p>
             ${estacion.nivel_alerta ? `<p><strong>Nivel alerta:</strong> ${estacion.nivel_alerta} m</p>` : ''}
             ${estacion.nivel_critico ? `<p><strong>Nivel crítico:</strong> ${estacion.nivel_critico} m</p>` : ''}
@@ -60,21 +96,18 @@ function crearPopup(estacion) {
     `;
 }
 
-function mostrarInfoEstacionById(id) {
-    const estacion = estacionesData.find(e => e.id === id);
-    if (estacion) mostrarInfoEstacion(estacion);
-}
-
 function mostrarInfoEstacion(estacion) {
     const infoDiv = document.getElementById('estacionInfo');
     const ultima = estacion.ultima_medicion !== null ? estacion.ultima_medicion : 'Sin datos';
     const fechaUltima = estacion.fecha_ultima_medicion ? new Date(estacion.fecha_ultima_medicion).toLocaleString() : 'N/A';
     const unidad = estacion.tipo === 'rio' ? 'm' : 'mm';
+    const tendencia = obtenerTendencia(estacion);
+    const tendenciaHTML = `<span style="color:${tendencia.color}; font-size:1.2em;">${tendencia.flecha}</span>${tendencia.diferencia ? ` (${tendencia.diferencia})` : ''}`;
 
     infoDiv.innerHTML = `
         <h6>${estacion.nombre}</h6>
         <p><strong>Tipo:</strong> ${estacion.tipo}</p>
-        <p><strong>Última medición:</strong> ${ultima} ${unidad}</p>
+        <p><strong>Última medición:</strong> ${ultima} ${unidad} ${tendenciaHTML}</p>
         <p><strong>Fecha:</strong> ${fechaUltima}</p>
         <p><strong>Coordenadas:</strong> ${estacion.latitud}, ${estacion.longitud}</p>
         ${estacion.nivel_alerta ? `<p><strong>Alerta:</strong> ${estacion.nivel_alerta}</p>` : ''}
@@ -82,6 +115,11 @@ function mostrarInfoEstacion(estacion) {
         <button class="btn btn-sm btn-outline-secondary" onclick="this.parentElement.style.display='none'">Cerrar</button>
     `;
     infoDiv.style.display = 'block';
+}
+
+function mostrarInfoEstacionById(id) {
+    const estacion = estacionesData.find(e => e.id === id);
+    if (estacion) mostrarInfoEstacion(estacion);
 }
 
 function actualizarSelectEstaciones() {
@@ -103,19 +141,4 @@ function actualizarSelectEstaciones() {
         });
         select.value = current;
     });
-}
-function obtenerColorEstado(estacion) {
-    if (!estacion.ultima_medicion) return 'grey';
-    const valor = parseFloat(estacion.ultima_medicion);
-    if (estacion.tipo === 'rio') {
-        if (estacion.nivel_critico && valor >= estacion.nivel_critico) return 'red';
-        if (estacion.nivel_alerta && valor >= estacion.nivel_alerta) return 'yellow';
-        return 'green';
-    } else if (estacion.tipo === 'pluviometrica') {
-        // Umbrales de lluvia (puedes ajustarlos)
-        if (valor >= 150) return 'red';
-        if (valor >= 100) return 'yellow';
-        return 'green';
-    }
-    return 'blue';
 }
