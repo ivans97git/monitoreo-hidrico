@@ -50,8 +50,8 @@ async function cargarEstaciones() {
 }
 
 function obtenerColorEstado(estacion) {
-    if (estacion.ultima_medicion === null || estacion.ultima_medicion === undefined) return 'grey';
-    const valor = parseFloat(estacion.ultima_medicion);
+    if (estacion.ultima_nivel_rio === null || estacion.ultima_nivel_rio === undefined) return 'grey';
+    const valor = parseFloat(estacion.ultima_nivel_rio);
     if (estacion.tipo === 'rio') {
         if (estacion.nivel_critico && valor >= parseFloat(estacion.nivel_critico)) return 'red';
         if (estacion.nivel_alerta && valor >= parseFloat(estacion.nivel_alerta)) return 'yellow';
@@ -81,9 +81,12 @@ function crearTooltip(estacion) {
 }
 
 function crearPopup(estacion) {
-    const ultima = estacion.ultima_medicion !== null ? estacion.ultima_medicion : 'Sin datos';
-    const fechaUltima = estacion.fecha_ultima_medicion ? new Date(estacion.fecha_ultima_medicion).toLocaleString() : 'N/A';
-    const unidad = estacion.tipo === 'rio' ? 'm' : 'mm';
+    const unidadRio = 'm';
+    const unidadLluvia = 'mm';
+    const nivel = estacion.ultima_medicion !== null ? estacion.ultima_medicion : 'Sin datos';
+    const lluvia = estacion.ultima_precipitacion !== null ? estacion.ultima_precipitacion : 'Sin datos';
+    const fechaNivel = estacion.fecha_ultima_medicion ? new Date(estacion.fecha_ultima_medicion).toLocaleString() : 'N/A';
+    const fechaLluvia = estacion.fecha_ultima_precipitacion ? new Date(estacion.fecha_ultima_precipitacion).toLocaleString() : 'N/A';
     const tendencia = obtenerTendencia(estacion);
     const tendenciaHTML = `<span style="color:${tendencia.color}; font-size:1.2em;">${tendencia.flecha}</span>${tendencia.diferencia ? ` (${tendencia.diferencia})` : ''}`;
 
@@ -91,8 +94,10 @@ function crearPopup(estacion) {
         <div class="popup-estacion">
             <h6>${estacion.nombre}</h6>
             <p><strong>Tipo:</strong> ${estacion.tipo === 'rio' ? 'Río' : 'Pluviométrica'}</p>
-            <p><strong>Última medición:</strong> ${ultima} ${unidad} ${tendenciaHTML}</p>
-            <p><strong>Fecha:</strong> ${fechaUltima}</p>
+            <p><strong>Nivel actual:</strong> ${nivel} ${unidadRio} ${tendenciaHTML}</p>
+            <p><strong>Fecha nivel:</strong> ${fechaNivel}</p>
+            <p><strong>Lluvia acumulada:</strong> ${lluvia} ${unidadLluvia}</p>
+            <p><strong>Fecha lluvia:</strong> ${fechaLluvia}</p>
             ${estacion.nivel_alerta ? `<p><strong>Nivel alerta:</strong> ${estacion.nivel_alerta} m</p>` : ''}
             ${estacion.nivel_critico ? `<p><strong>Nivel crítico:</strong> ${estacion.nivel_critico} m</p>` : ''}
         </div>
