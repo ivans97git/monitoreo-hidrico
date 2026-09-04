@@ -122,6 +122,7 @@ function actualizarSelectEstaciones() {
         document.getElementById('selectEstacionGrafico'),
         document.getElementById('selectEstacionPoblador'),
         document.getElementById('pobEstacion')
+        document.getElementById('selectEstacionMediciones') 
     ];
     selects.forEach(select => {
         if (!select) return;
