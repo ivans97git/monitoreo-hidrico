@@ -50,20 +50,26 @@ async function cargarEstaciones() {
 }
 
 function obtenerColorEstado(estacion) {
-    if (estacion.ultima_nivel_rio === null || estacion.ultima_nivel_rio === undefined) return 'grey';
-    const valor = parseFloat(estacion.ultima_nivel_rio);
     if (estacion.tipo === 'rio') {
+        const valor = parseFloat(estacion.ultima_medicion_rio);
+        if (isNaN(valor)) return 'grey';
         if (estacion.nivel_critico && valor >= parseFloat(estacion.nivel_critico)) return 'red';
         if (estacion.nivel_alerta && valor >= parseFloat(estacion.nivel_alerta)) return 'yellow';
         return 'green';
+    } else if (estacion.tipo === 'pluviometrica') {
+        // La lluvia es informativa, usamos azul fijo
+        return 'blue';
     }
-    // Para pluviométrica siempre verde o gris si no hay dato, pero no afecta alertas
-    return 'green';
+    return 'grey';
 }
 
 function obtenerTendencia(estacion) {
-    const ultima = parseFloat(estacion.ultima_medicion);
-    const anterior = parseFloat(estacion.medicion_anterior);
+    if (estacion.tipo !== 'rio') {
+        // Para lluvia no mostramos tendencia o simplemente guion
+        return { flecha: '–', color: 'blue', diferencia: null };
+    }
+    const ultima = parseFloat(estacion.ultima_medicion_rio);
+    const anterior = parseFloat(estacion.medicion_anterior_rio);
     if (isNaN(ultima) || isNaN(anterior) || ultima === anterior) {
         return { flecha: '–', color: 'blue', diferencia: null };
     }
@@ -73,33 +79,69 @@ function obtenerTendencia(estacion) {
 }
 
 function crearTooltip(estacion) {
-    const ultima = estacion.ultima_medicion !== null ? estacion.ultima_medicion : 'Sin datos';
-    const unidad = estacion.tipo === 'rio' ? 'm' : 'mm';
-    const tendencia = obtenerTendencia(estacion);
-    const tendenciaTexto = tendencia.diferencia ? `${tendencia.flecha} (${tendencia.diferencia})` : tendencia.flecha;
-    return `<div style="font-weight:bold;">${estacion.nombre}</div><div>${tendenciaTexto} &nbsp; ${ultima} ${unidad}</div>`;
+    let valorMostrar, unidad, tendencia;
+
+    if (estacion.tipo === 'rio') {
+        valorMostrar = (estacion.ultima_medicion_rio !== null && estacion.ultima_medicion_rio !== undefined)
+            ? estacion.ultima_medicion_rio
+            : 'Sin datos';
+        unidad = 'm';
+        tendencia = obtenerTendencia(estacion);
+    } else {
+        valorMostrar = (estacion.ultima_precipitacion !== null && estacion.ultima_precipitacion !== undefined)
+            ? estacion.ultima_precipitacion
+            : 'Sin datos';
+        unidad = 'mm';
+        tendencia = { flecha: '–', color: 'blue', diferencia: null };
+    }
+
+    const tendenciaTexto = tendencia.diferencia
+        ? `${tendencia.flecha} (${tendencia.diferencia})`
+        : `${tendencia.flecha}`;
+
+    return `
+        <div style="font-weight:bold;">${estacion.nombre}</div>
+        <div>${tendenciaTexto} &nbsp; ${valorMostrar} ${unidad}</div>
+    `;
 }
 
 function crearPopup(estacion) {
-    const unidadRio = 'm';
-    const unidadLluvia = 'mm';
-    const nivel = estacion.ultima_medicion !== null ? estacion.ultima_medicion : 'Sin datos';
-    const lluvia = estacion.ultima_precipitacion !== null ? estacion.ultima_precipitacion : 'Sin datos';
-    const fechaNivel = estacion.fecha_ultima_medicion ? new Date(estacion.fecha_ultima_medicion).toLocaleString() : 'N/A';
-    const fechaLluvia = estacion.fecha_ultima_precipitacion ? new Date(estacion.fecha_ultima_precipitacion).toLocaleString() : 'N/A';
-    const tendencia = obtenerTendencia(estacion);
-    const tendenciaHTML = `<span style="color:${tendencia.color}; font-size:1.2em;">${tendencia.flecha}</span>${tendencia.diferencia ? ` (${tendencia.diferencia})` : ''}`;
+    let valorMostrar, fechaMostrar, unidad, tendenciaHTML;
+
+    if (estacion.tipo === 'rio') {
+        valorMostrar = (estacion.ultima_medicion_rio !== null && estacion.ultima_medicion_rio !== undefined)
+            ? estacion.ultima_medicion_rio
+            : 'Sin datos';
+        fechaMostrar = estacion.fecha_ultima_medicion_rio
+            ? new Date(estacion.fecha_ultima_medicion_rio).toLocaleString()
+            : 'N/A';
+        unidad = 'm';
+        const tendencia = obtenerTendencia(estacion);
+        tendenciaHTML = `<span style="color:${tendencia.color}; font-size:1.2em;">${tendencia.flecha}</span>${tendencia.diferencia ? ` (${tendencia.diferencia})` : ''}`;
+    } else {
+        valorMostrar = (estacion.ultima_precipitacion !== null && estacion.ultima_precipitacion !== undefined)
+            ? estacion.ultima_precipitacion
+            : 'Sin datos';
+        fechaMostrar = estacion.fecha_ultima_precipitacion
+            ? new Date(estacion.fecha_ultima_precipitacion).toLocaleString()
+            : 'N/A';
+        unidad = 'mm';
+        tendenciaHTML = `<span style="color:blue; font-size:1.2em;">–</span>`;
+    }
+
+    // Los umbrales solo aplican a estaciones de río
+    const umbralesHTML = estacion.tipo === 'rio' ? `
+        ${estacion.nivel_alerta ? `<p><strong>Nivel alerta:</strong> ${estacion.nivel_alerta} m</p>` : ''}
+        ${estacion.nivel_critico ? `<p><strong>Nivel crítico:</strong> ${estacion.nivel_critico} m</p>` : ''}
+    ` : '';
 
     return `
         <div class="popup-estacion">
             <h6>${estacion.nombre}</h6>
             <p><strong>Tipo:</strong> ${estacion.tipo === 'rio' ? 'Río' : 'Pluviométrica'}</p>
-            <p><strong>Nivel actual:</strong> ${nivel} ${unidadRio} ${tendenciaHTML}</p>
-            <p><strong>Fecha nivel:</strong> ${fechaNivel}</p>
-            <p><strong>Lluvia acumulada:</strong> ${lluvia} ${unidadLluvia}</p>
-            <p><strong>Fecha lluvia:</strong> ${fechaLluvia}</p>
-            ${estacion.nivel_alerta ? `<p><strong>Nivel alerta:</strong> ${estacion.nivel_alerta} m</p>` : ''}
-            ${estacion.nivel_critico ? `<p><strong>Nivel crítico:</strong> ${estacion.nivel_critico} m</p>` : ''}
+            <p><strong>Última medición:</strong> ${valorMostrar} ${unidad} ${tendenciaHTML}</p>
+            <p><strong>Fecha:</strong> ${fechaMostrar}</p>
+            ${umbralesHTML}
         </div>
     `;
 }
