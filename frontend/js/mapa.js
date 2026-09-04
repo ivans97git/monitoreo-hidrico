@@ -1,6 +1,7 @@
 let map;
 let marcadores = {};
 let estacionesData = [];
+console.log('✅ mapa.js cargado correctamente');
 
 function inicializarMapa() {
     map = L.map('map').setView(CONFIG.MAPA.centroInicial, CONFIG.MAPA.zoomInicial);
