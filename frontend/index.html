@@ -118,7 +118,9 @@
                         <select class="form-select mb-3" id="selectEstacionGrafico">
                             <option value="">Todas las estaciones</option>
                         </select>
-                        <canvas id="graficoMediciones" height="250"></canvas>
+                        <div class="chart-container" style="position: relative; height: 300px; width: 100%;">
+                        <canvas id="graficoMediciones"></canvas>
+                        </div>                                       
                         <button class="btn btn-sm btn-outline-primary mt-2" onclick="actualizarGrafico()">
                             <i class="fas fa-sync me-1"></i> Actualizar
                         </button>
