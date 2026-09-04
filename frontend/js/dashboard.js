@@ -4,6 +4,10 @@ let marcadores = {};
 let estacionesData = [];
 
 function inicializarMapa() {
+    if (map) {
+        console.log('ℹ️ El mapa ya estaba inicializado');
+        return;
+    }
     map = L.map('map').setView(CONFIG.MAPA.centroInicial, CONFIG.MAPA.zoomInicial);
     L.tileLayer(CONFIG.MAPA.tileLayer, {
         attribution: CONFIG.MAPA.atribucion,
