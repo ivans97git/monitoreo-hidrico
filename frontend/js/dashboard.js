@@ -1,3 +1,6 @@
+if (typeof inicializarMapa === 'undefined') {
+    console.error('inicializarMapa no está definida. Verifica que mapa.js se cargó correctamente.');
+}
 document.addEventListener('DOMContentLoaded', async () => {
     try {
         if (!api.getToken()) {
