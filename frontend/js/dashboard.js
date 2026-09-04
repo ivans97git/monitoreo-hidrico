@@ -371,7 +371,7 @@ function mostrarMensaje(mensaje, tipo) {
 
 // Evento para cargar estaciones admin al cambiar a la pestaña
 document.addEventListener('shown.bs.tab', (e) => {
-    if (e.target.getAttribute('data-bs-target') === '#mediciones') {
+    if (e.target.getAttribute('data-bs-target') === '#gestionMediciones') {
         cargarMediciones();
     }
     if (e.target.getAttribute('data-bs-target') === '#estaciones') {
