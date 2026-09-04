@@ -1,15 +1,6 @@
 const { query } = require('../config/database');
 const excelService = require('./excelService');
 
-/**
- * Verifica si una medición supera los umbrales de alerta de la estación
- * y, en caso afirmativo, genera un archivo Excel con los pobladores afectados.
- * 
- * @param {object} medicion - La medición registrada (debe incluir id, estacion_id, valor, tipo_medicion, fecha_hora)
- * @param {object} estacion - La estación asociada (debe incluir id, nombre, nivel_alerta, nivel_critico, tipo)
- * @returns {Promise<{alertaGenerada: boolean, archivo: string|null}>}
- */
-
 async function verificarYGenerarAlerta(medicion, estacion) {
     try {
         let tipoAlerta = null;
@@ -34,7 +25,7 @@ async function verificarYGenerarAlerta(medicion, estacion) {
 
         console.log(`⚠️ Alerta ${tipoAlerta} detectada para estación ${estacion.nombre}`);
 
-        // Obtener pobladores...
+        // Obtener pobladores asociados a la estación
         const pobladoresRes = await query(
             'SELECT * FROM pobladores WHERE estacion_id = $1 AND activo = true',
             [estacion.id]
@@ -46,17 +37,19 @@ async function verificarYGenerarAlerta(medicion, estacion) {
             return { alertaGenerada: false, archivo: null };
         }
 
+        // Generar Excel
         const resultado = await excelService.generarExcelPobladores(
             pobladores, estacion, tipoAlerta, medicion.valor, medicion.fecha_hora
         );
 
+        // Guardar alerta
         await query(
             `INSERT INTO alertas (estacion_id, medicion_id, tipo_alerta, archivo_excel, mensaje)
              VALUES ($1, $2, $3, $4, $5)`,
             [estacion.id, medicion.id, tipoAlerta, resultado.filename, `Alerta ${tipoAlerta}`]
         );
 
-        console.log(`✅ Excel generado: ${resultado.filename}`);
+        console.log(`✅ Excel generado y alerta registrada: ${resultado.filename}`);
         return { alertaGenerada: true, archivo: resultado.filename };
 
     } catch (error) {
