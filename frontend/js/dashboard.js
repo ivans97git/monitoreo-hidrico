@@ -376,6 +376,33 @@ async function cargarAlertas() {
     }
 }
 
+async function generarAlertaManual() {
+    const estacion_id = document.getElementById('selectEstacionAlerta').value;
+    if (!estacion_id) {
+        alert('Seleccione una estación');
+        return;
+    }
+    try {
+        const response = await fetch(`${CONFIG.API_URL}/alertas/generar`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${api.getToken()}`
+            },
+            body: JSON.stringify({ estacion_id })
+        });
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Error al generar alerta');
+        }
+        const data = await response.json();
+        alert(`Alerta generada. Archivo: ${data.archivo}`);
+        await cargarAlertas();
+    } catch (error) {
+        alert('Error: ' + error.message);
+    }
+}
+
 function mostrarMensaje(mensaje, tipo) {
     const div = document.getElementById('mensajeRegistro');
     div.innerHTML = `<div class="alert alert-${tipo} alert-dismissible fade show" role="alert">
