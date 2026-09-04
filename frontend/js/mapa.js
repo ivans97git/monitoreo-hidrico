@@ -8,9 +8,9 @@ function inicializarMapa() {
         attribution: CONFIG.MAPA.atribucion,
         maxZoom: 19
     }).addTo(map);
-    map.on('click', () => {
-        document.getElementById('estacionInfo').style.display = 'none';
-    });
+    // Ya no usaremos el panel de información lateral
+    const infoDiv = document.getElementById('estacionInfo');
+    if (infoDiv) infoDiv.style.display = 'none';
 }
 
 async function cargarEstaciones() {
@@ -31,10 +31,17 @@ async function cargarEstaciones() {
                 popupAnchor: [1, -34],
                 shadowSize: [41, 41]
             });
+
             const marcador = L.marker([estacion.latitud, estacion.longitud], { icon: icono })
                 .addTo(map)
-                .bindPopup(crearPopup(estacion));
-            marcador.on('click', () => mostrarInfoEstacion(estacion));
+                .bindPopup(crearPopup(estacion))
+                .bindTooltip(crearTooltip(estacion), {
+                    direction: 'top',
+                    offset: [0, -30],
+                    opacity: 0.9,
+                    sticky: true
+                });
+
             marcadores[estacion.id] = marcador;
         });
 
@@ -59,7 +66,7 @@ function obtenerColorEstado(estacion) {
         if (valor >= 100) return 'yellow';
         return 'green';
     }
-    return 'blue'; // fallback
+    return 'blue';
 }
 
 function obtenerTendencia(estacion) {
@@ -74,6 +81,20 @@ function obtenerTendencia(estacion) {
     } else {
         return { flecha: '↓', color: 'green', diferencia: Math.abs(diff).toFixed(2) };
     }
+}
+
+function crearTooltip(estacion) {
+    const ultima = estacion.ultima_medicion !== null ? estacion.ultima_medicion : 'Sin datos';
+    const unidad = estacion.tipo === 'rio' ? 'm' : 'mm';
+    const tendencia = obtenerTendencia(estacion);
+    const tendenciaTexto = tendencia.diferencia
+        ? `${tendencia.flecha} (${tendencia.diferencia})`
+        : `${tendencia.flecha}`;
+
+    return `
+        <div style="font-weight:bold;">${estacion.nombre}</div>
+        <div>${tendenciaTexto} &nbsp; ${ultima} ${unidad}</div>
+    `;
 }
 
 function crearPopup(estacion) {
@@ -91,35 +112,8 @@ function crearPopup(estacion) {
             <p><strong>Fecha:</strong> ${fechaUltima}</p>
             ${estacion.nivel_alerta ? `<p><strong>Nivel alerta:</strong> ${estacion.nivel_alerta} m</p>` : ''}
             ${estacion.nivel_critico ? `<p><strong>Nivel crítico:</strong> ${estacion.nivel_critico} m</p>` : ''}
-            <button class="btn btn-sm btn-primary" onclick="mostrarInfoEstacionById(${estacion.id})">Ver detalles</button>
         </div>
     `;
-}
-
-function mostrarInfoEstacion(estacion) {
-    const infoDiv = document.getElementById('estacionInfo');
-    const ultima = estacion.ultima_medicion !== null ? estacion.ultima_medicion : 'Sin datos';
-    const fechaUltima = estacion.fecha_ultima_medicion ? new Date(estacion.fecha_ultima_medicion).toLocaleString() : 'N/A';
-    const unidad = estacion.tipo === 'rio' ? 'm' : 'mm';
-    const tendencia = obtenerTendencia(estacion);
-    const tendenciaHTML = `<span style="color:${tendencia.color}; font-size:1.2em;">${tendencia.flecha}</span>${tendencia.diferencia ? ` (${tendencia.diferencia})` : ''}`;
-
-    infoDiv.innerHTML = `
-        <h6>${estacion.nombre}</h6>
-        <p><strong>Tipo:</strong> ${estacion.tipo}</p>
-        <p><strong>Última medición:</strong> ${ultima} ${unidad} ${tendenciaHTML}</p>
-        <p><strong>Fecha:</strong> ${fechaUltima}</p>
-        <p><strong>Coordenadas:</strong> ${estacion.latitud}, ${estacion.longitud}</p>
-        ${estacion.nivel_alerta ? `<p><strong>Alerta:</strong> ${estacion.nivel_alerta}</p>` : ''}
-        ${estacion.nivel_critico ? `<p><strong>Crítico:</strong> ${estacion.nivel_critico}</p>` : ''}
-        <button class="btn btn-sm btn-outline-secondary" onclick="this.parentElement.style.display='none'">Cerrar</button>
-    `;
-    infoDiv.style.display = 'block';
-}
-
-function mostrarInfoEstacionById(id) {
-    const estacion = estacionesData.find(e => e.id === id);
-    if (estacion) mostrarInfoEstacion(estacion);
 }
 
 function actualizarSelectEstaciones() {
