@@ -56,12 +56,9 @@ function obtenerColorEstado(estacion) {
         if (estacion.nivel_critico && valor >= parseFloat(estacion.nivel_critico)) return 'red';
         if (estacion.nivel_alerta && valor >= parseFloat(estacion.nivel_alerta)) return 'yellow';
         return 'green';
-    } else if (estacion.tipo === 'pluviometrica') {
-        if (valor >= 150) return 'red';
-        if (valor >= 100) return 'yellow';
-        return 'green';
     }
-    return 'blue';
+    // Para pluviométrica siempre verde o gris si no hay dato, pero no afecta alertas
+    return 'green';
 }
 
 function obtenerTendencia(estacion) {
