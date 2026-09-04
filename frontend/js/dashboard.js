@@ -20,58 +20,32 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 function inicializarFormularios() {
-    // Formulario de medición
     const formMedicion = document.getElementById('formMedicion');
-    if (formMedicion) {
-        formMedicion.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            await registrarMedicion();
-        });
-    }
+    if (formMedicion) formMedicion.addEventListener('submit', registrarMedicion);
 
-    // Formulario de estación
     const formEstacion = document.getElementById('formEstacion');
-    if (formEstacion) {
-        formEstacion.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            await guardarEstacion();
-        });
-    }
+    if (formEstacion) formEstacion.addEventListener('submit', guardarEstacion);
 
-    // Formulario de poblador
     const formPoblador = document.getElementById('formPoblador');
-    if (formPoblador) {
-        formPoblador.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            await guardarPoblador();
-        });
-    }
-
-    // Actualizar unidad de medida según tipo (opcional)
-    const selectTipo = document.getElementById('selectTipo');
-    if (selectTipo) {
-        selectTipo.addEventListener('change', (e) => {
-            // Opcional: mostrar unidad
-        });
-    }
+    if (formPoblador) formPoblador.addEventListener('submit', guardarPoblador);
 }
 
-async function registrarMedicion() {
+async function registrarMedicion(e) {
+    e.preventDefault();
     const estacion_id = document.getElementById('selectEstacion').value;
     const tipo_medicion = document.getElementById('selectTipo').value;
     const valor = parseFloat(document.getElementById('inputValor').value);
     const observaciones = document.getElementById('inputObservaciones').value;
     const fecha_hora = document.getElementById('inputFechaHora').value || new Date().toISOString();
 
-    if (!estacion_id || !tipo_medicion || !valor) {
-        alert('Complete todos los campos obligatorios');
+    if (!estacion_id || !tipo_medicion || isNaN(valor)) {
+        alert('Complete los campos obligatorios');
         return;
     }
 
     try {
         const btn = document.querySelector('#formMedicion button[type="submit"]');
         btn.disabled = true;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Registrando...';
         const resultado = await api.registrarMedicion({ estacion_id, valor, tipo_medicion, observaciones, fecha_hora });
         let mensaje = '✅ Medición registrada exitosamente';
         if (resultado.alerta_generada && resultado.archivo_excel) {
@@ -81,19 +55,15 @@ async function registrarMedicion() {
         mostrarMensaje(mensaje, 'success');
         document.getElementById('formMedicion').reset();
         await cargarEstaciones();
-        await actualizarGrafico();
+        actualizarGrafico();
         await cargarAlertas();
         btn.disabled = false;
-        btn.innerHTML = '<i class="fas fa-save me-1"></i> Registrar';
     } catch (error) {
         mostrarMensaje('Error: ' + error.message, 'danger');
-        const btn = document.querySelector('#formMedicion button[type="submit"]');
-        btn.disabled = false;
-        btn.innerHTML = '<i class="fas fa-save me-1"></i> Registrar';
     }
 }
 
-// Funciones para estaciones
+// Estaciones
 function nuevaEstacion() {
     document.getElementById('formEstacion').reset();
     document.getElementById('estId').value = '';
@@ -104,7 +74,8 @@ function cancelarEdicionEstacion() {
     document.getElementById('formEstacion').style.display = 'none';
 }
 
-async function guardarEstacion() {
+async function guardarEstacion(e) {
+    e.preventDefault();
     const id = document.getElementById('estId').value;
     const data = {
         nombre: document.getElementById('estNombre').value,
@@ -116,14 +87,10 @@ async function guardarEstacion() {
         descripcion: document.getElementById('estDescripcion').value
     };
     try {
-        if (id) {
-            await api.actualizarEstacion(id, data);
-        } else {
-            await api.crearEstacion(data);
-        }
+        if (id) await api.actualizarEstacion(id, data);
+        else await api.crearEstacion(data);
         cancelarEdicionEstacion();
         await cargarEstaciones();
-        await cargarEstacionesAdmin();
     } catch (error) {
         alert('Error al guardar estación: ' + error.message);
     }
@@ -174,13 +141,12 @@ async function eliminarEstacion(id) {
     try {
         await api.eliminarEstacion(id);
         await cargarEstaciones();
-        await cargarEstacionesAdmin();
     } catch (error) {
         alert('Error al eliminar: ' + error.message);
     }
 }
 
-// Funciones para pobladores
+// Pobladores
 function nuevoPoblador() {
     document.getElementById('formPoblador').reset();
     document.getElementById('pobId').value = '';
@@ -192,7 +158,8 @@ function cancelarEdicionPoblador() {
     document.getElementById('formPoblador').style.display = 'none';
 }
 
-async function guardarPoblador() {
+async function guardarPoblador(e) {
+    e.preventDefault();
     const id = document.getElementById('pobId').value;
     const data = {
         nombre: document.getElementById('pobNombre').value,
@@ -202,11 +169,8 @@ async function guardarPoblador() {
         estacion_id: document.getElementById('pobEstacion').value
     };
     try {
-        if (id) {
-            await api.actualizarPoblador(id, data);
-        } else {
-            await api.crearPoblador(data);
-        }
+        if (id) await api.actualizarPoblador(id, data);
+        else await api.crearPoblador(data);
         cancelarEdicionPoblador();
         await cargarPobladores();
     } catch (error) {
@@ -228,8 +192,7 @@ async function cargarPobladores() {
             <div class="item-listado d-flex justify-content-between align-items-center">
                 <div>
                     <strong>${p.nombre} ${p.apellido}</strong><br>
-                    <small>${p.telefono || 'Sin teléfono'} | ${p.ubicacion || 'Sin ubicación'}</small><br>
-                    <small class="text-muted">Estación: ${p.estacion_nombre || 'Sin asignar'}</small>
+                    <small>${p.telefono || 'Sin teléfono'} | ${p.ubicacion || 'Sin ubicación'}</small>
                 </div>
                 <div>
                     <button class="btn btn-sm btn-outline-primary" onclick="editarPoblador(${p.id})"><i class="fas fa-edit"></i></button>
@@ -268,13 +231,12 @@ async function eliminarPoblador(id) {
 async function cargarAlertas() {
     try {
         const alertas = await api.getAlertas({ limite: 10 });
-        const listaAlertas = document.getElementById('listaAlertas');
-        if (!listaAlertas) return;
+        const lista = document.getElementById('listaAlertas');
         if (!alertas.length) {
-            listaAlertas.innerHTML = '<p class="text-muted">No hay alertas registradas</p>';
+            lista.innerHTML = '<p class="text-muted">No hay alertas registradas</p>';
             return;
         }
-        listaAlertas.innerHTML = alertas.map(alerta => `
+        lista.innerHTML = alertas.map(alerta => `
             <div class="list-group-item alerta-item ${alerta.tipo_alerta === 'CRÍTICO' ? 'alerta-critica' : ''}">
                 <div class="d-flex justify-content-between">
                     <strong>${alerta.nombre_estacion || 'Estación ' + alerta.estacion_id}</strong>
@@ -298,13 +260,3 @@ function mostrarMensaje(mensaje, tipo) {
     </div>`;
     setTimeout(() => div.innerHTML = '', 5000);
 }
-
-// Inicializar carga de estaciones admin al cambiar a pestaña
-document.addEventListener('shown.bs.tab', (e) => {
-    if (e.target.getAttribute('data-bs-target') === '#estaciones') {
-        cargarEstacionesAdmin();
-    }
-    if (e.target.getAttribute('data-bs-target') === '#pobladores') {
-        cargarPobladores();
-    }
-});
