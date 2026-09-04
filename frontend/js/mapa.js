@@ -152,18 +152,38 @@ function actualizarSelectEstaciones() {
         document.getElementById('selectEstacionGrafico'),
         document.getElementById('selectEstacionPoblador'),
         document.getElementById('pobEstacion'),
-        document.getElementById('selectEstacionMediciones')
+        document.getElementById('selectEstacionMediciones'),
+        document.getElementById('selectEstacionRio'),      // Nuevo
+        document.getElementById('selectEstacionLluvia')    // Nuevo
     ];
+
     selects.forEach(select => {
-        if (!select) return;
-        const current = select.value;
+        if (!select) return; // Si el elemento no existe en el DOM, lo ignora
+
+        const current = select.value; // Guarda la selección actual
         select.innerHTML = '<option value="">Seleccionar...</option>';
-        estacionesData.forEach(est => {
+
+        // Filtrar estaciones según el select
+        let estacionesFiltradas = estacionesData;
+        if (select.id === 'selectEstacionRio') {
+            estacionesFiltradas = estacionesData.filter(e => e.tipo === 'rio');
+        } else if (select.id === 'selectEstacionLluvia') {
+            estacionesFiltradas = estacionesData.filter(e => e.tipo === 'pluviometrica');
+        }
+
+        // Llenar opciones
+        estacionesFiltradas.forEach(est => {
             const opt = document.createElement('option');
             opt.value = est.id;
             opt.textContent = est.nombre;
             select.appendChild(opt);
         });
-        select.value = current;
+
+        // Restaurar selección anterior si aún existe en las nuevas opciones
+        if ([...select.options].some(o => o.value === current)) {
+            select.value = current;
+        } else {
+            select.value = '';
+        }
     });
 }
