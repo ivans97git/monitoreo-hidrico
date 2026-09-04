@@ -188,3 +188,7 @@ function actualizarSelectEstaciones() {
         }
     });
 }
+
+window.inicializarMapa = inicializarMapa;
+window.cargarEstaciones = cargarEstaciones;
+window.actualizarSelectEstaciones = actualizarSelectEstaciones;
