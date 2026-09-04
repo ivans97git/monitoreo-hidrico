@@ -2,9 +2,8 @@ let graficoMediciones = null;
 
 function inicializarGraficos() {
     const ctx = document.getElementById('graficoMediciones').getContext('2d');
-    if (graficoMediciones) {
-        graficoMediciones.destroy(); // Destruir gráfico anterior
-    }
+    if (graficoMediciones) graficoMediciones.destroy();
+
     graficoMediciones = new Chart(ctx, {
         type: 'line',
         data: {
@@ -22,18 +21,21 @@ function inicializarGraficos() {
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            animation: {
-                duration: 500 // animación más corta para evitar movimientos bruscos
-            },
+            animation: { duration: 300 },
             plugins: {
                 legend: { display: true, position: 'top' },
                 tooltip: { mode: 'index', intersect: false }
             },
             scales: {
-                y: { beginAtZero: true },
-                x: { 
+                y: {
+                    beginAtZero: true,
+                    suggestedMin: 0,
+                    suggestedMax: 20,
+                    title: { display: true, text: 'Valor' }
+                },
+                x: {
                     title: { display: true, text: 'Fecha' },
-                    ticks: { maxTicksLimit: 10 } // limitar número de etiquetas en eje X
+                    ticks: { maxTicksLimit: 10 }
                 }
             }
         }
@@ -46,20 +48,16 @@ async function actualizarGrafico() {
         const estacionId = document.getElementById('selectEstacionGrafico').value;
         const filtros = { limite: 50 };
         if (estacionId) filtros.estacion_id = estacionId;
-        
+
         const mediciones = await api.getMediciones(filtros);
-        
-        // Filtrar mediciones válidas y ordenar por fecha ascendente
-        const medicionesValidas = mediciones
-            .filter(m => m.valor !== null && m.valor !== undefined)
-            .sort((a, b) => new Date(a.fecha_hora) - new Date(b.fecha_hora));
-        
-        const labels = medicionesValidas.map(m => new Date(m.fecha_hora).toLocaleString());
-        const data = medicionesValidas.map(m => m.valor);
-        
+        const validas = mediciones.filter(m => m.valor !== null && m.valor !== undefined)
+                                 .sort((a, b) => new Date(a.fecha_hora) - new Date(b.fecha_hora));
+        const labels = validas.map(m => new Date(m.fecha_hora).toLocaleString());
+        const data = validas.map(m => m.valor);
+
         graficoMediciones.data.labels = labels;
         graficoMediciones.data.datasets[0].data = data;
-        graficoMediciones.update('none'); // 'none' evita animación que puede causar saltos
+        graficoMediciones.update('none');
     } catch (error) {
         console.error('Error actualizando gráfico:', error);
     }
