@@ -96,7 +96,11 @@ body {
     margin-bottom: 10px;
     font-weight: bold;
 }
-
+.chart-container {
+    position: relative;
+    height: 300px;
+    width: 100%;
+}
 /* Información de estación */
 .station-info {
     position: absolute;
