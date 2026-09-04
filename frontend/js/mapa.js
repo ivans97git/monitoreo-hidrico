@@ -155,6 +155,7 @@ function actualizarSelectEstaciones() {
         document.getElementById('selectEstacionMediciones'),
         document.getElementById('selectEstacionRio'),      // Nuevo
         document.getElementById('selectEstacionLluvia')    // Nuevo
+        document.getElementById('selectEstacionAlerta')
     ];
 
     selects.forEach(select => {
