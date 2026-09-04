@@ -116,6 +116,10 @@ class API {
         return await this.request(`/mediciones/${id}`, { method: 'DELETE' });
     }
 
+    async registrarMedicion(data) {
+    return await this.request('/mediciones', { method: 'POST', body: JSON.stringify(data) });
+}
+
     // Alertas
     async getAlertas(filtros = {}) {
         const params = new URLSearchParams(filtros).toString();
