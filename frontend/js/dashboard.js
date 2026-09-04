@@ -12,6 +12,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         await cargarAlertas();
         await cargarPobladores();
         inicializarFormularios();
+        // Cargar la lista de estaciones en la pestaña de administración
+        await cargarEstacionesAdmin();
         document.getElementById('loadingScreen').style.display = 'none';
     } catch (error) {
         console.error('Error inicializando:', error);
@@ -57,9 +59,11 @@ async function registrarMedicion(e) {
         await cargarEstaciones();
         actualizarGrafico();
         await cargarAlertas();
+        await cargarEstacionesAdmin(); // Actualizar pestaña admin
         btn.disabled = false;
     } catch (error) {
         mostrarMensaje('Error: ' + error.message, 'danger');
+        btn.disabled = false;
     }
 }
 
@@ -91,6 +95,7 @@ async function guardarEstacion(e) {
         else await api.crearEstacion(data);
         cancelarEdicionEstacion();
         await cargarEstaciones();
+        await cargarEstacionesAdmin(); // Refrescar lista
     } catch (error) {
         alert('Error al guardar estación: ' + error.message);
     }
@@ -100,6 +105,10 @@ async function cargarEstacionesAdmin() {
     try {
         const estaciones = await api.getEstaciones();
         const lista = document.getElementById('listaEstaciones');
+        if (!lista) {
+            console.warn('No se encontró el elemento listaEstaciones');
+            return;
+        }
         if (!estaciones.length) {
             lista.innerHTML = '<p class="text-muted">No hay estaciones</p>';
             return;
@@ -141,6 +150,7 @@ async function eliminarEstacion(id) {
     try {
         await api.eliminarEstacion(id);
         await cargarEstaciones();
+        await cargarEstacionesAdmin();
     } catch (error) {
         alert('Error al eliminar: ' + error.message);
     }
@@ -260,3 +270,10 @@ function mostrarMensaje(mensaje, tipo) {
     </div>`;
     setTimeout(() => div.innerHTML = '', 5000);
 }
+
+// Evento para cargar estaciones admin al cambiar a la pestaña
+document.addEventListener('shown.bs.tab', (e) => {
+    if (e.target.getAttribute('data-bs-target') === '#estaciones') {
+        cargarEstacionesAdmin();
+    }
+});
