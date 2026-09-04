@@ -98,18 +98,22 @@ class API {
         return await this.request(`/pobladores/${id}`, { method: 'DELETE' });
     }
 
-    // Mediciones
+        // Mediciones
     async getMediciones(filtros = {}) {
         const params = new URLSearchParams(filtros).toString();
         return await this.request(`/mediciones?${params}`);
     }
 
-    async getUltimasMediciones() {
-        return await this.request('/mediciones/ultimas');
+    async getMedicion(id) {
+        return await this.request(`/mediciones/${id}`);
     }
 
-    async registrarMedicion(data) {
-        return await this.request('/mediciones', { method: 'POST', body: JSON.stringify(data) });
+    async actualizarMedicion(id, data) {
+        return await this.request(`/mediciones/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+    }
+
+    async eliminarMedicion(id) {
+        return await this.request(`/mediciones/${id}`, { method: 'DELETE' });
     }
 
     // Alertas
