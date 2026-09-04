@@ -5,7 +5,7 @@ const { verificarYGenerarAlerta } = require('../services/alertService');
 
 const router = express.Router();
 
-// GET /api/mediciones?limite=50&estacion_id=1
+// GET /api/mediciones?limite=100&estacion_id=1&tipo_medicion=nivel_rio
 router.get('/', autenticarToken, async (req, res) => {
     try {
         const { estacion_id, tipo, desde, hasta, limite = 100 } = req.query;
@@ -117,13 +117,11 @@ router.put('/:id', autenticarToken, async (req, res) => {
             return res.status(400).json({ error: 'Valor y tipo de medición son requeridos' });
         }
 
-        // Verificar que la medición existe
         const medRes = await query('SELECT * FROM mediciones WHERE id = $1', [req.params.id]);
         if (medRes.rows.length === 0) {
             return res.status(404).json({ error: 'Medición no encontrada' });
         }
 
-        // Si se cambia de estación, verificar que exista
         if (estacion_id) {
             const estRes = await query('SELECT * FROM estaciones WHERE id = $1', [estacion_id]);
             if (estRes.rows.length === 0) {
