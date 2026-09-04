@@ -155,4 +155,58 @@ router.post('/enviar', autenticarToken, autorizarRol('admin'), async (req, res) 
     }
 });
 
+// POST /api/alertas/generar
+router.post('/generar', autenticarToken, async (req, res) => {
+    try {
+        const { estacion_id } = req.body;
+        if (!estacion_id) {
+            return res.status(400).json({ error: 'Se requiere estacion_id' });
+        }
+
+        // Obtener estación
+        const estRes = await query('SELECT * FROM estaciones WHERE id = $1', [estacion_id]);
+        if (estRes.rows.length === 0) return res.status(404).json({ error: 'Estación no encontrada' });
+        const estacion = estRes.rows[0];
+
+        // Obtener última medición de río
+        const medRes = await query(
+            `SELECT * FROM mediciones 
+             WHERE estacion_id = $1 AND tipo_medicion = 'nivel_rio'
+             ORDER BY fecha_hora DESC LIMIT 1`,
+            [estacion_id]
+        );
+        if (medRes.rows.length === 0) return res.status(400).json({ error: 'No hay mediciones de río para esta estación' });
+        const medicion = medRes.rows[0];
+
+        // Determinar tipo (alerta o crítico)
+        const valor = parseFloat(medicion.valor);
+        let tipo_alerta = null;
+        if (estacion.nivel_critico && valor >= parseFloat(estacion.nivel_critico)) tipo_alerta = 'CRÍTICO';
+        else if (estacion.nivel_alerta && valor >= parseFloat(estacion.nivel_alerta)) tipo_alerta = 'ALERTA';
+        else return res.status(400).json({ error: 'El nivel actual no supera umbrales. No se puede generar alerta automática.' });
+
+        // Obtener pobladores
+        const pobladoresRes = await query('SELECT * FROM pobladores WHERE estacion_id = $1 AND activo = true', [estacion_id]);
+        if (pobladoresRes.rows.length === 0) return res.status(400).json({ error: 'No hay pobladores para esta estación' });
+
+        // Generar Excel
+        const excelService = require('../services/excelService');
+        const resultado = await excelService.generarExcelPobladores(
+            pobladoresRes.rows, estacion, tipo_alerta, medicion.valor, medicion.fecha_hora
+        );
+
+        // Registrar alerta
+        await query(
+            `INSERT INTO alertas (estacion_id, medicion_id, tipo_alerta, archivo_excel, mensaje)
+             VALUES ($1, $2, $3, $4, $5)`,
+            [estacion.id, medicion.id, tipo_alerta, resultado.filename, `Alerta manual ${tipo_alerta}`]
+        );
+
+        res.json({ mensaje: 'Alerta generada', archivo: resultado.filename });
+    } catch (error) {
+        console.error('Error generando alerta manual:', error);
+        res.status(500).json({ error: 'Error al generar alerta' });
+    }
+});
+
 module.exports = router;
