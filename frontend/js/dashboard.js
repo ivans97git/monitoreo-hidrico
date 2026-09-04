@@ -37,6 +37,10 @@ function inicializarFormularios() {
 
 async function registrarMedicion(e) {
     e.preventDefault();
+
+    // Declarar btn al inicio con let, para que esté disponible en catch
+    let btn = null;
+
     const estacion_id = document.getElementById('selectEstacion').value;
     const tipo_medicion = document.getElementById('selectTipo').value;
     const valor = parseFloat(document.getElementById('inputValor').value);
@@ -49,24 +53,40 @@ async function registrarMedicion(e) {
     }
 
     try {
-        const btn = document.querySelector('#formMedicion button[type="submit"]');
+        btn = document.querySelector('#formMedicion button[type="submit"]');
         btn.disabled = true;
-        const resultado = await api.registrarMedicion({ estacion_id, valor, tipo_medicion, observaciones, fecha_hora });
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Registrando...';
+
+        const resultado = await api.registrarMedicion({
+            estacion_id,
+            valor,
+            tipo_medicion,
+            observaciones,
+            fecha_hora
+        });
+
         let mensaje = '✅ Medición registrada exitosamente';
         if (resultado.alerta_generada && resultado.archivo_excel) {
             const enlace = `${CONFIG.API_URL.replace('/api','')}/api/descargar/${resultado.archivo_excel}`;
             mensaje += `<br><a href="${enlace}" class="btn btn-sm btn-success mt-2" download>Descargar listado de pobladores</a>`;
         }
         mostrarMensaje(mensaje, 'success');
+
         document.getElementById('formMedicion').reset();
         await cargarEstaciones();
         actualizarGrafico();
         await cargarAlertas();
-        await cargarEstacionesAdmin(); // Actualizar pestaña admin
-        btn.disabled = false;
+        await cargarEstacionesAdmin();
+
     } catch (error) {
+        console.error('Error registrando medición:', error);
         mostrarMensaje('Error: ' + error.message, 'danger');
-        btn.disabled = false;
+    } finally {
+        // Restaurar botón solo si fue asignado
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-save me-1"></i> Registrar';
+        }
     }
 }
 
