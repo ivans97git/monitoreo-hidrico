@@ -1,6 +1,3 @@
-if (typeof inicializarMapa === 'undefined') {
-    console.error('inicializarMapa no está definida. Verifica que mapa.js se cargó correctamente.');
-}
 document.addEventListener('DOMContentLoaded', async () => {
     try {
         if (!api.getToken()) {
@@ -15,7 +12,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         await cargarAlertas();
         await cargarPobladores();
         inicializarFormularios();
-        // Cargar la lista de estaciones en la pestaña de administración
         await cargarEstacionesAdmin();
         document.getElementById('loadingScreen').style.display = 'none';
     } catch (error) {
@@ -35,10 +31,10 @@ function inicializarFormularios() {
     if (formPoblador) formPoblador.addEventListener('submit', guardarPoblador);
 }
 
+// ==================== MEDICIONES ====================
 async function registrarMedicion(e) {
     e.preventDefault();
 
-    // Declarar btn al inicio con let, para que esté disponible en catch
     let btn = null;
 
     const estacion_id = document.getElementById('selectEstacion').value;
@@ -74,15 +70,14 @@ async function registrarMedicion(e) {
 
         document.getElementById('formMedicion').reset();
         await cargarEstaciones();
-        actualizarGrafico();
+        actualizarGraficoRio();
+        actualizarGraficoLluvia();
         await cargarAlertas();
         await cargarEstacionesAdmin();
-
     } catch (error) {
         console.error('Error registrando medición:', error);
         mostrarMensaje('Error: ' + error.message, 'danger');
     } finally {
-        // Restaurar botón solo si fue asignado
         if (btn) {
             btn.disabled = false;
             btn.innerHTML = '<i class="fas fa-save me-1"></i> Registrar';
@@ -164,9 +159,9 @@ async function guardarEdicionMedicion() {
         await api.actualizarMedicion(id, data);
         bootstrap.Modal.getInstance(document.getElementById('modalEditarMedicion')).hide();
         await cargarMediciones();
-        // Actualizar también el mapa y el gráfico
         await cargarEstaciones();
-        actualizarGrafico();
+        actualizarGraficoRio();
+        actualizarGraficoLluvia();
     } catch (error) {
         alert('Error al actualizar: ' + error.message);
     }
@@ -178,14 +173,14 @@ async function eliminarMedicion(id) {
         await api.eliminarMedicion(id);
         await cargarMediciones();
         await cargarEstaciones();
-        actualizarGrafico();
+        actualizarGraficoRio();
+        actualizarGraficoLluvia();
     } catch (error) {
         alert('Error al eliminar: ' + error.message);
     }
 }
 
-
-// Estaciones
+// ==================== ESTACIONES ====================
 function nuevaEstacion() {
     document.getElementById('formEstacion').reset();
     document.getElementById('estId').value = '';
@@ -213,7 +208,7 @@ async function guardarEstacion(e) {
         else await api.crearEstacion(data);
         cancelarEdicionEstacion();
         await cargarEstaciones();
-        await cargarEstacionesAdmin(); // Refrescar lista
+        await cargarEstacionesAdmin();
     } catch (error) {
         alert('Error al guardar estación: ' + error.message);
     }
@@ -274,7 +269,7 @@ async function eliminarEstacion(id) {
     }
 }
 
-// Pobladores
+// ==================== POBLADORES ====================
 function nuevoPoblador() {
     document.getElementById('formPoblador').reset();
     document.getElementById('pobId').value = '';
@@ -356,6 +351,7 @@ async function eliminarPoblador(id) {
     }
 }
 
+// ==================== ALERTAS ====================
 async function cargarAlertas() {
     try {
         const alertas = await api.getAlertas({ limite: 10 });
@@ -389,7 +385,7 @@ function mostrarMensaje(mensaje, tipo) {
     setTimeout(() => div.innerHTML = '', 5000);
 }
 
-// Evento para cargar estaciones admin al cambiar a la pestaña
+// Evento para cargar datos al cambiar a cada pestaña
 document.addEventListener('shown.bs.tab', (e) => {
     if (e.target.getAttribute('data-bs-target') === '#gestionMediciones') {
         cargarMediciones();
