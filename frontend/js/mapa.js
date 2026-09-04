@@ -1,3 +1,4 @@
+console.log('✅ mapa.js cargado correctamente');
 let map;
 let marcadores = {};
 let estacionesData = [];
