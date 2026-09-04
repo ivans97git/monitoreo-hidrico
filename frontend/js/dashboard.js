@@ -67,6 +67,101 @@ async function registrarMedicion(e) {
     }
 }
 
+async function cargarMediciones() {
+    const estacionId = document.getElementById('selectEstacionMediciones').value;
+    const filtros = { limite: 100 };
+    if (estacionId) filtros.estacion_id = estacionId;
+
+    try {
+        const mediciones = await api.getMediciones(filtros);
+        const lista = document.getElementById('listaMediciones');
+        if (!mediciones.length) {
+            lista.innerHTML = '<p class="text-muted">No hay mediciones</p>';
+            return;
+        }
+        lista.innerHTML = `
+            <div class="table-responsive">
+                <table class="table table-sm table-striped">
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Estación</th>
+                            <th>Tipo</th>
+                            <th>Valor</th>
+                            <th>Obs.</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${mediciones.map(m => `
+                            <tr>
+                                <td>${new Date(m.fecha_hora).toLocaleString()}</td>
+                                <td>${m.nombre_estacion || 'N/A'}</td>
+                                <td>${m.tipo_medicion === 'nivel_rio' ? 'Río' : 'Lluvia'}</td>
+                                <td>${m.valor}</td>
+                                <td>${m.observaciones || ''}</td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-primary" onclick="abrirModalEditar(${m.id})"><i class="fas fa-edit"></i></button>
+                                    <button class="btn btn-sm btn-outline-danger" onclick="eliminarMedicion(${m.id})"><i class="fas fa-trash"></i></button>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+        `;
+    } catch (error) {
+        console.error('Error cargando mediciones:', error);
+    }
+}
+
+async function abrirModalEditar(id) {
+    try {
+        const medicion = await api.getMedicion(id);
+        document.getElementById('editMedicionId').value = medicion.id;
+        document.getElementById('editValor').value = medicion.valor;
+        document.getElementById('editTipo').value = medicion.tipo_medicion;
+        document.getElementById('editFechaHora').value = medicion.fecha_hora.slice(0, 16);
+        document.getElementById('editObservaciones').value = medicion.observaciones || '';
+        new bootstrap.Modal(document.getElementById('modalEditarMedicion')).show();
+    } catch (error) {
+        alert('Error al cargar medición: ' + error.message);
+    }
+}
+
+async function guardarEdicionMedicion() {
+    const id = document.getElementById('editMedicionId').value;
+    const data = {
+        valor: parseFloat(document.getElementById('editValor').value),
+        tipo_medicion: document.getElementById('editTipo').value,
+        fecha_hora: document.getElementById('editFechaHora').value || null,
+        observaciones: document.getElementById('editObservaciones').value
+    };
+    try {
+        await api.actualizarMedicion(id, data);
+        bootstrap.Modal.getInstance(document.getElementById('modalEditarMedicion')).hide();
+        await cargarMediciones();
+        // Actualizar también el mapa y el gráfico
+        await cargarEstaciones();
+        actualizarGrafico();
+    } catch (error) {
+        alert('Error al actualizar: ' + error.message);
+    }
+}
+
+async function eliminarMedicion(id) {
+    if (!confirm('¿Eliminar esta medición?')) return;
+    try {
+        await api.eliminarMedicion(id);
+        await cargarMediciones();
+        await cargarEstaciones();
+        actualizarGrafico();
+    } catch (error) {
+        alert('Error al eliminar: ' + error.message);
+    }
+}
+
+
 // Estaciones
 function nuevaEstacion() {
     document.getElementById('formEstacion').reset();
