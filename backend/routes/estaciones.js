@@ -9,10 +9,21 @@ router.get('/', autenticarToken, async (req, res) => {
     try {
         const result = await query(`
             SELECT e.*,
-                (SELECT m.valor FROM mediciones m WHERE m.estacion_id = e.id ORDER BY m.fecha_hora DESC LIMIT 1) as ultima_medicion,
-                (SELECT m.fecha_hora FROM mediciones m WHERE m.estacion_id = e.id ORDER BY m.fecha_hora DESC LIMIT 1) as fecha_ultima_medicion,
-                (SELECT m.valor FROM mediciones m WHERE m.estacion_id = e.id ORDER BY m.fecha_hora DESC LIMIT 1 OFFSET 1) as medicion_anterior,
-                (SELECT m.fecha_hora FROM mediciones m WHERE m.estacion_id = e.id ORDER BY m.fecha_hora DESC LIMIT 1 OFFSET 1) as fecha_medicion_anterior
+                (SELECT m.valor FROM mediciones m 
+                 WHERE m.estacion_id = e.id AND m.tipo_medicion = 'nivel_rio'
+                 ORDER BY m.fecha_hora DESC LIMIT 1) as ultima_medicion_rio,
+                (SELECT m.fecha_hora FROM mediciones m 
+                 WHERE m.estacion_id = e.id AND m.tipo_medicion = 'nivel_rio'
+                 ORDER BY m.fecha_hora DESC LIMIT 1) as fecha_ultima_medicion_rio,
+                (SELECT m.valor FROM mediciones m 
+                 WHERE m.estacion_id = e.id AND m.tipo_medicion = 'nivel_rio'
+                 ORDER BY m.fecha_hora DESC LIMIT 1 OFFSET 1) as medicion_anterior_rio,
+                (SELECT m.valor FROM mediciones m 
+                 WHERE m.estacion_id = e.id AND m.tipo_medicion = 'precipitacion'
+                 ORDER BY m.fecha_hora DESC LIMIT 1) as ultima_precipitacion,
+                (SELECT m.fecha_hora FROM mediciones m 
+                 WHERE m.estacion_id = e.id AND m.tipo_medicion = 'precipitacion'
+                 ORDER BY m.fecha_hora DESC LIMIT 1) as fecha_ultima_precipitacion
             FROM estaciones e
             ORDER BY e.nombre
         `);
