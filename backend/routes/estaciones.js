@@ -8,10 +8,11 @@ const router = express.Router();
 router.get('/', autenticarToken, async (req, res) => {
     try {
         const result = await query(`
-            SELECT e.*, 
-                   (SELECT m.valor FROM mediciones m WHERE m.estacion_id = e.id ORDER BY m.fecha_hora DESC LIMIT 1) as ultima_medicion,
-                   (SELECT m.fecha_hora FROM mediciones m WHERE m.estacion_id = e.id ORDER BY m.fecha_hora DESC LIMIT 1) as fecha_ultima_medicion,
-                   (SELECT m.tipo_medicion FROM mediciones m WHERE m.estacion_id = e.id ORDER BY m.fecha_hora DESC LIMIT 1) as tipo_ultima_medicion
+            SELECT e.*,
+                (SELECT m.valor FROM mediciones m WHERE m.estacion_id = e.id ORDER BY m.fecha_hora DESC LIMIT 1) as ultima_medicion,
+                (SELECT m.fecha_hora FROM mediciones m WHERE m.estacion_id = e.id ORDER BY m.fecha_hora DESC LIMIT 1) as fecha_ultima_medicion,
+                (SELECT m.valor FROM mediciones m WHERE m.estacion_id = e.id ORDER BY m.fecha_hora DESC LIMIT 1 OFFSET 1) as medicion_anterior,
+                (SELECT m.fecha_hora FROM mediciones m WHERE m.estacion_id = e.id ORDER BY m.fecha_hora DESC LIMIT 1 OFFSET 1) as fecha_medicion_anterior
             FROM estaciones e
             ORDER BY e.nombre
         `);
