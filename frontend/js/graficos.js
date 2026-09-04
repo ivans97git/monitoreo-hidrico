@@ -21,10 +21,20 @@ function inicializarGraficos() {
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            animation: { duration: 300 },
+            animation: {
+                duration: 0 // desactiva animaciones para evitar saltos
+            },
+            hover: {
+                animationDuration: 0, // sin animación al pasar el mouse
+                intersect: false
+            },
             plugins: {
                 legend: { display: true, position: 'top' },
-                tooltip: { mode: 'index', intersect: false }
+                tooltip: {
+                    mode: 'index',
+                    intersect: false,
+                    animation: false // desactiva animación del tooltip
+                }
             },
             scales: {
                 y: {
@@ -37,6 +47,9 @@ function inicializarGraficos() {
                     title: { display: true, text: 'Fecha' },
                     ticks: { maxTicksLimit: 10 }
                 }
+            },
+            onHover: (event, chartElement) => {
+                // No hacer nada en hover para evitar redimensionamientos
             }
         }
     });
@@ -57,7 +70,7 @@ async function actualizarGrafico() {
 
         graficoMediciones.data.labels = labels;
         graficoMediciones.data.datasets[0].data = data;
-        graficoMediciones.update('none');
+        graficoMediciones.update('none'); // sin animación
     } catch (error) {
         console.error('Error actualizando gráfico:', error);
     }
