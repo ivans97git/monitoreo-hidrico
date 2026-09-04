@@ -9,35 +9,25 @@ const excelService = require('./excelService');
  * @param {object} estacion - La estación asociada (debe incluir id, nombre, nivel_alerta, nivel_critico, tipo)
  * @returns {Promise<{alertaGenerada: boolean, archivo: string|null}>}
  */
+
 async function verificarYGenerarAlerta(medicion, estacion) {
     try {
         let tipoAlerta = null;
 
-        // --- 1. Determinar si corresponde alerta según tipo de medición ---
+        // Solo nivel de río genera alertas
         if (medicion.tipo_medicion === 'nivel_rio') {
             if (estacion.nivel_critico && parseFloat(medicion.valor) >= parseFloat(estacion.nivel_critico)) {
                 tipoAlerta = 'CRÍTICO';
             } else if (estacion.nivel_alerta && parseFloat(medicion.valor) >= parseFloat(estacion.nivel_alerta)) {
                 tipoAlerta = 'ALERTA';
             }
-        } else if (medicion.tipo_medicion === 'precipitacion') {
-            // Para precipitación usamos umbrales fijos (puedes ajustarlos)
-            const valor = parseFloat(medicion.valor);
-            if (valor >= 150) {
-                tipoAlerta = 'CRÍTICO';
-            } else if (valor >= 100) {
-                tipoAlerta = 'ALERTA';
-            }
         }
 
-        // Si no hay alerta, salir
         if (!tipoAlerta) {
-            console.log('ℹ️ Medición dentro de parámetros normales. No se genera alerta.');
+            console.log('ℹ️ Medición de lluvia o dentro de parámetros normales. No se genera alerta.');
             return { alertaGenerada: false, archivo: null };
         }
-
-        console.log(`⚠️ Alerta ${tipoAlerta} detectada para estación ${estacion.nombre}`);
-
+        
         // --- 2. Obtener pobladores asociados a la estación ---
         const pobladoresRes = await query(
             `SELECT * FROM pobladores 
