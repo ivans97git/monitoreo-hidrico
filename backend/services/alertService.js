@@ -14,63 +14,50 @@ async function verificarYGenerarAlerta(medicion, estacion) {
     try {
         let tipoAlerta = null;
 
-        // Solo nivel de río genera alertas
-        if (medicion.tipo_medicion === 'nivel_rio') {
-            if (estacion.nivel_critico && parseFloat(medicion.valor) >= parseFloat(estacion.nivel_critico)) {
-                tipoAlerta = 'CRÍTICO';
-            } else if (estacion.nivel_alerta && parseFloat(medicion.valor) >= parseFloat(estacion.nivel_alerta)) {
-                tipoAlerta = 'ALERTA';
-            }
+        // Solo alertas para nivel de río
+        if (medicion.tipo_medicion !== 'nivel_rio') {
+            console.log('ℹ️ Medición de lluvia, no genera alerta.');
+            return { alertaGenerada: false, archivo: null };
+        }
+
+        const valor = parseFloat(medicion.valor);
+        if (estacion.nivel_critico && valor >= parseFloat(estacion.nivel_critico)) {
+            tipoAlerta = 'CRÍTICO';
+        } else if (estacion.nivel_alerta && valor >= parseFloat(estacion.nivel_alerta)) {
+            tipoAlerta = 'ALERTA';
         }
 
         if (!tipoAlerta) {
-            console.log('ℹ️ Medición de lluvia o dentro de parámetros normales. No se genera alerta.');
+            console.log('ℹ️ Nivel dentro de parámetros normales.');
             return { alertaGenerada: false, archivo: null };
         }
-        
-        // --- 2. Obtener pobladores asociados a la estación ---
+
+        console.log(`⚠️ Alerta ${tipoAlerta} detectada para estación ${estacion.nombre}`);
+
+        // Obtener pobladores...
         const pobladoresRes = await query(
-            `SELECT * FROM pobladores 
-             WHERE estacion_id = $1 AND activo = true
-             ORDER BY apellido, nombre`,
+            'SELECT * FROM pobladores WHERE estacion_id = $1 AND activo = true',
             [estacion.id]
         );
-
         const pobladores = pobladoresRes.rows;
 
         if (pobladores.length === 0) {
-            console.log('ℹ️ No hay pobladores registrados para esta estación. No se genera Excel.');
+            console.log('ℹ️ No hay pobladores registrados para esta estación.');
             return { alertaGenerada: false, archivo: null };
         }
 
-        // --- 3. Generar el archivo Excel ---
         const resultado = await excelService.generarExcelPobladores(
-            pobladores,
-            estacion,
-            tipoAlerta,
-            medicion.valor,
-            medicion.fecha_hora
+            pobladores, estacion, tipoAlerta, medicion.valor, medicion.fecha_hora
         );
 
-        // --- 4. Guardar registro en tabla alertas ---
         await query(
             `INSERT INTO alertas (estacion_id, medicion_id, tipo_alerta, archivo_excel, mensaje)
              VALUES ($1, $2, $3, $4, $5)`,
-            [
-                estacion.id,
-                medicion.id,
-                tipoAlerta,
-                resultado.filename,
-                `Alerta ${tipoAlerta} - Estación: ${estacion.nombre} - Valor: ${medicion.valor}`
-            ]
+            [estacion.id, medicion.id, tipoAlerta, resultado.filename, `Alerta ${tipoAlerta}`]
         );
 
-        console.log(`✅ Excel generado y alerta registrada: ${resultado.filename}`);
-
-        return {
-            alertaGenerada: true,
-            archivo: resultado.filename
-        };
+        console.log(`✅ Excel generado: ${resultado.filename}`);
+        return { alertaGenerada: true, archivo: resultado.filename };
 
     } catch (error) {
         console.error('❌ Error en alertService:', error);
