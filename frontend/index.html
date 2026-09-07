@@ -275,6 +275,22 @@
                     <button class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
                     <button class="btn btn-primary" onclick="guardarEdicionMedicion()">Guardar</button>
                 </div>
+                <!-- Modal alerta automática -->
+                <div class="modal fade" id="modalAlertaAutomatica" tabindex="-1">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header bg-warning">
+                                <h5 class="modal-title">⚠️ Alerta Hidrológica</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body">
+                                <p>Por favor, realice el aviso correspondiente a través de <strong>WhatsApp</strong> a los pobladores cercanos.</p>
+                                <p>Al hacer clic en <strong>"Descargar listado"</strong> se descargará el archivo Excel con los datos de los pobladores.</p>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                <button type="button" class="btn btn-success" id="btnDescargarExcel">Descargar listado</button>
+                            </div>
             </div>
         </div>
     </div>
