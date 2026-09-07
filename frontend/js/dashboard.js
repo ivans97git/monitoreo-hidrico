@@ -4,17 +4,12 @@ let marcadores = {};
 let estacionesData = [];
 
 function inicializarMapa() {
-    if (map) {
-        console.log('ℹ️ El mapa ya estaba inicializado');
-        return;
-    }
+    if (map) return;
     map = L.map('map').setView(CONFIG.MAPA.centroInicial, CONFIG.MAPA.zoomInicial);
     L.tileLayer(CONFIG.MAPA.tileLayer, {
         attribution: CONFIG.MAPA.atribucion,
         maxZoom: 19
     }).addTo(map);
-    const infoDiv = document.getElementById('estacionInfo');
-    if (infoDiv) infoDiv.style.display = 'none';
 }
 
 async function cargarEstaciones() {
@@ -60,10 +55,8 @@ function obtenerColorEstado(estacion) {
         if (estacion.nivel_critico && valor >= parseFloat(estacion.nivel_critico)) return 'red';
         if (estacion.nivel_alerta && valor >= parseFloat(estacion.nivel_alerta)) return 'yellow';
         return 'green';
-    } else if (estacion.tipo === 'pluviometrica') {
-        return 'blue'; // lluvia informativa
     }
-    return 'grey';
+    return 'blue';
 }
 
 function obtenerTendencia(estacion) {
@@ -152,30 +145,11 @@ function actualizarSelectEstaciones() {
     });
 }
 
+window.inicializarMapa = inicializarMapa;
+window.cargarEstaciones = cargarEstaciones;
+window.actualizarSelectEstaciones = actualizarSelectEstaciones;
+
 // ==================== INICIALIZACIÓN ====================
-document.addEventListener('DOMContentLoaded', async () => {
-    try {
-        if (!api.getToken()) {
-            window.location.href = 'login.html';
-            return;
-        }
-        const usuario = await api.getUsuarioActual();
-        document.getElementById('userName').textContent = usuario.nombre || usuario.username;
-        inicializarMapa();   // Ahora está definida aquí mismo
-        await cargarEstaciones();
-        inicializarGraficos();
-        await cargarAlertas();
-        await cargarPobladores();
-        inicializarFormularios();
-        await cargarEstacionesAdmin();
-        document.getElementById('loadingScreen').style.display = 'none';
-    } catch (error) {
-        console.error('Error inicializando:', error);
-        window.location.href = 'login.html';
-    }
-});
-
-
 document.addEventListener('DOMContentLoaded', async () => {
     try {
         if (!api.getToken()) {
@@ -212,9 +186,7 @@ function inicializarFormularios() {
 // ==================== MEDICIONES ====================
 async function registrarMedicion(e) {
     e.preventDefault();
-
     let btn = null;
-
     const estacion_id = document.getElementById('selectEstacion').value;
     const tipo_medicion = document.getElementById('selectTipo').value;
     const valor = parseFloat(document.getElementById('inputValor').value);
@@ -231,21 +203,13 @@ async function registrarMedicion(e) {
         btn.disabled = true;
         btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Registrando...';
 
-        const resultado = await api.registrarMedicion({
-            estacion_id,
-            valor,
-            tipo_medicion,
-            observaciones,
-            fecha_hora
-        });
-
+        const resultado = await api.registrarMedicion({ estacion_id, valor, tipo_medicion, observaciones, fecha_hora });
         let mensaje = '✅ Medición registrada exitosamente';
         if (resultado.alerta_generada && resultado.archivo_excel) {
             const enlace = `${CONFIG.API_URL.replace('/api','')}/api/descargar/${resultado.archivo_excel}`;
             mensaje += `<br><a href="${enlace}" class="btn btn-sm btn-success mt-2" download>Descargar listado de pobladores</a>`;
         }
         mostrarMensaje(mensaje, 'success');
-
         document.getElementById('formMedicion').reset();
         await cargarEstaciones();
         actualizarGraficoRio();
@@ -278,16 +242,7 @@ async function cargarMediciones() {
         lista.innerHTML = `
             <div class="table-responsive">
                 <table class="table table-sm table-striped">
-                    <thead>
-                        <tr>
-                            <th>Fecha</th>
-                            <th>Estación</th>
-                            <th>Tipo</th>
-                            <th>Valor</th>
-                            <th>Obs.</th>
-                            <th>Acciones</th>
-                        </tr>
-                    </thead>
+                    <thead><tr><th>Fecha</th><th>Estación</th><th>Tipo</th><th>Valor</th><th>Obs.</th><th>Acciones</th></tr></thead>
                     <tbody>
                         ${mediciones.map(m => `
                             <tr>
@@ -396,20 +351,14 @@ async function cargarEstacionesAdmin() {
     try {
         const estaciones = await api.getEstaciones();
         const lista = document.getElementById('listaEstaciones');
-        if (!lista) {
-            console.warn('No se encontró el elemento listaEstaciones');
-            return;
-        }
+        if (!lista) return;
         if (!estaciones.length) {
             lista.innerHTML = '<p class="text-muted">No hay estaciones</p>';
             return;
         }
         lista.innerHTML = estaciones.map(est => `
             <div class="item-listado d-flex justify-content-between align-items-center">
-                <div>
-                    <strong>${est.nombre}</strong> (${est.tipo})<br>
-                    <small>Alerta: ${est.nivel_alerta || 'N/A'} | Crítico: ${est.nivel_critico || 'N/A'}</small>
-                </div>
+                <div><strong>${est.nombre}</strong> (${est.tipo})<br><small>Alerta: ${est.nivel_alerta || 'N/A'} | Crítico: ${est.nivel_critico || 'N/A'}</small></div>
                 <div>
                     <button class="btn btn-sm btn-outline-primary" onclick="editarEstacion(${est.id})"><i class="fas fa-edit"></i></button>
                     <button class="btn btn-sm btn-outline-danger" onclick="eliminarEstacion(${est.id})"><i class="fas fa-trash"></i></button>
@@ -491,10 +440,7 @@ async function cargarPobladores() {
         }
         lista.innerHTML = pobladores.map(p => `
             <div class="item-listado d-flex justify-content-between align-items-center">
-                <div>
-                    <strong>${p.nombre} ${p.apellido}</strong><br>
-                    <small>${p.telefono || 'Sin teléfono'} | ${p.ubicacion || 'Sin ubicación'}</small>
-                </div>
+                <div><strong>${p.nombre} ${p.apellido}</strong><br><small>${p.telefono || 'Sin teléfono'} | ${p.ubicacion || 'Sin ubicación'}</small></div>
                 <div>
                     <button class="btn btn-sm btn-outline-primary" onclick="editarPoblador(${p.id})"><i class="fas fa-edit"></i></button>
                     <button class="btn btn-sm btn-outline-danger" onclick="eliminarPoblador(${p.id})"><i class="fas fa-trash"></i></button>
@@ -556,24 +502,16 @@ async function cargarAlertas() {
 
 async function generarAlertaManual() {
     const estacion_id = document.getElementById('selectEstacionAlerta').value;
+    const tipo_alerta = document.getElementById('selectTipoAlertaManual').value;
+    const mensaje = document.getElementById('mensajeAlertaManual').value;
+
     if (!estacion_id) {
         alert('Seleccione una estación');
         return;
     }
+
     try {
-        const response = await fetch(`${CONFIG.API_URL}/alertas/generar`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${api.getToken()}`
-            },
-            body: JSON.stringify({ estacion_id })
-        });
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.error || 'Error al generar alerta');
-        }
-        const data = await response.json();
+        const data = await api.generarAlertaManual({ estacion_id, tipo_alerta, mensaje });
         alert(`Alerta generada. Archivo: ${data.archivo}`);
         await cargarAlertas();
     } catch (error) {
