@@ -22,7 +22,7 @@ function inicializarGraficos() {
         }
     };
 
-    // Gráfico de río
+    // Gráfico de nivel de río
     graficoRio = new Chart(ctxRio, {
         type: 'line',
         data: {
@@ -48,7 +48,7 @@ function inicializarGraficos() {
         }
     });
 
-    // Gráfico de lluvia
+    // Gráfico de precipitación
     graficoLluvia = new Chart(ctxLluvia, {
         type: 'bar',
         data: {
