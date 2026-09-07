@@ -205,10 +205,32 @@ async function registrarMedicion(e) {
 
         const resultado = await api.registrarMedicion({ estacion_id, valor, tipo_medicion, observaciones, fecha_hora });
         let mensaje = '✅ Medición registrada exitosamente';
+
         if (resultado.alerta_generada && resultado.archivo_excel) {
             const enlace = `${CONFIG.API_URL.replace('/api','')}/api/descargar/${resultado.archivo_excel}`;
-            mensaje += `<br><a href="${enlace}" class="btn btn-sm btn-success mt-2" download>Descargar listado de pobladores</a>`;
+
+            // Configurar botón del modal
+            const btnDescargar = document.getElementById('btnDescargarExcel');
+            if (btnDescargar) {
+                btnDescargar.onclick = () => {
+                    window.location.href = enlace;
+                };
+            }
+
+            // Mostrar modal
+            const modalEl = document.getElementById('modalAlertaAutomatica');
+            if (modalEl) {
+                const modal = new bootstrap.Modal(modalEl);
+                modal.show();
+            } else {
+                // Fallback con confirm
+                const confirmar = confirm('⚠️ Por favor, realice el aviso correspondiente a través de WhatsApp a los pobladores cercanos.\n\nAl presionar Aceptar se descargará el listado de pobladores.');
+                if (confirmar) window.location.href = enlace;
+            }
+
+            mensaje += `<br><a href="${enlace}" class="btn btn-sm btn-success mt-2" download>Descargar listado manualmente</a>`;
         }
+
         mostrarMensaje(mensaje, 'success');
         document.getElementById('formMedicion').reset();
         await cargarEstaciones();
@@ -227,6 +249,7 @@ async function registrarMedicion(e) {
     }
 }
 
+// ==================== GESTIÓN DE MEDICIONES ====================
 async function cargarMediciones() {
     const estacionId = document.getElementById('selectEstacionMediciones').value;
     const filtros = { limite: 100 };
