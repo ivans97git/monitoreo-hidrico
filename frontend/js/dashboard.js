@@ -209,19 +209,30 @@ async function registrarMedicion(e) {
         if (resultado.alerta_generada && resultado.archivo_excel) {
             const enlace = `${CONFIG.API_URL.replace('/api','')}/api/descargar/${resultado.archivo_excel}`;
 
-            // Configurar botón del modal
-            const btnDescargar = document.getElementById('btnDescargarExcel');
-            if (btnDescargar) {
+            // Referencias al modal personalizado
+            const modal = document.getElementById('modalAlerta');
+            const btnDescargar = document.getElementById('btnDescargarModal');
+            const btnCancelar = document.getElementById('btnCancelarModal');
+
+            if (modal && btnDescargar && btnCancelar) {
+                // Configurar descarga
                 btnDescargar.onclick = () => {
                     window.location.href = enlace;
+                    modal.style.display = 'none';
                 };
-            }
 
-            // Mostrar modal
-            const modalEl = document.getElementById('modalAlertaAutomatica');
-            if (modalEl) {
-                const modal = new bootstrap.Modal(modalEl);
-                modal.show();
+                // Cancelar
+                btnCancelar.onclick = () => {
+                    modal.style.display = 'none';
+                };
+
+                // Cerrar al hacer clic fuera del contenido
+                modal.onclick = (e) => {
+                    if (e.target === modal) modal.style.display = 'none';
+                };
+
+                // Mostrar modal
+                modal.style.display = 'flex';
             } else {
                 // Fallback con confirm
                 const confirmar = confirm('⚠️ Por favor, realice el aviso correspondiente a través de WhatsApp a los pobladores cercanos.\n\nAl presionar Aceptar se descargará el listado de pobladores.');
