@@ -45,7 +45,6 @@ class API {
         }
     }
 
-    // Autenticación
     async login(username, password) {
         const response = await this.request('/auth/login', {
             method: 'POST',
@@ -55,75 +54,41 @@ class API {
         return response;
     }
 
-    async logout() {
-        this.clearToken();
-    }
-
-    async getUsuarioActual() {
-        return await this.request('/auth/me');
-    }
+    async logout() { this.clearToken(); }
+    async getUsuarioActual() { return await this.request('/auth/me'); }
 
     // Estaciones
-    async getEstaciones() {
-        return await this.request('/estaciones');
-    }
-
-    async crearEstacion(data) {
-        return await this.request('/estaciones', { method: 'POST', body: JSON.stringify(data) });
-    }
-
-    async actualizarEstacion(id, data) {
-        return await this.request(`/estaciones/${id}`, { method: 'PUT', body: JSON.stringify(data) });
-    }
-
-    async eliminarEstacion(id) {
-        return await this.request(`/estaciones/${id}`, { method: 'DELETE' });
-    }
+    async getEstaciones() { return await this.request('/estaciones'); }
+    async crearEstacion(data) { return await this.request('/estaciones', { method: 'POST', body: JSON.stringify(data) }); }
+    async actualizarEstacion(id, data) { return await this.request(`/estaciones/${id}`, { method: 'PUT', body: JSON.stringify(data) }); }
+    async eliminarEstacion(id) { return await this.request(`/estaciones/${id}`, { method: 'DELETE' }); }
 
     // Pobladores
     async getPobladores(estacionId = null) {
         const endpoint = estacionId ? `/pobladores?estacion_id=${estacionId}` : '/pobladores';
         return await this.request(endpoint);
     }
+    async crearPoblador(data) { return await this.request('/pobladores', { method: 'POST', body: JSON.stringify(data) }); }
+    async actualizarPoblador(id, data) { return await this.request(`/pobladores/${id}`, { method: 'PUT', body: JSON.stringify(data) }); }
+    async eliminarPoblador(id) { return await this.request(`/pobladores/${id}`, { method: 'DELETE' }); }
 
-    async crearPoblador(data) {
-        return await this.request('/pobladores', { method: 'POST', body: JSON.stringify(data) });
-    }
-
-    async actualizarPoblador(id, data) {
-        return await this.request(`/pobladores/${id}`, { method: 'PUT', body: JSON.stringify(data) });
-    }
-
-    async eliminarPoblador(id) {
-        return await this.request(`/pobladores/${id}`, { method: 'DELETE' });
-    }
-
-        // Mediciones
+    // Mediciones
     async getMediciones(filtros = {}) {
         const params = new URLSearchParams(filtros).toString();
         return await this.request(`/mediciones?${params}`);
     }
-
-    async getMedicion(id) {
-        return await this.request(`/mediciones/${id}`);
-    }
-
-    async actualizarMedicion(id, data) {
-        return await this.request(`/mediciones/${id}`, { method: 'PUT', body: JSON.stringify(data) });
-    }
-
-    async eliminarMedicion(id) {
-        return await this.request(`/mediciones/${id}`, { method: 'DELETE' });
-    }
-
-    async registrarMedicion(data) {
-    return await this.request('/mediciones', { method: 'POST', body: JSON.stringify(data) });
-}
+    async getMedicion(id) { return await this.request(`/mediciones/${id}`); }
+    async registrarMedicion(data) { return await this.request('/mediciones', { method: 'POST', body: JSON.stringify(data) }); }
+    async actualizarMedicion(id, data) { return await this.request(`/mediciones/${id}`, { method: 'PUT', body: JSON.stringify(data) }); }
+    async eliminarMedicion(id) { return await this.request(`/mediciones/${id}`, { method: 'DELETE' }); }
 
     // Alertas
     async getAlertas(filtros = {}) {
         const params = new URLSearchParams(filtros).toString();
         return await this.request(`/alertas?${params}`);
+    }
+    async generarAlertaManual(data) {
+        return await this.request('/alertas/generar', { method: 'POST', body: JSON.stringify(data) });
     }
 }
 
