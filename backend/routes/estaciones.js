@@ -4,7 +4,7 @@ const { autenticarToken, autorizarRol } = require('../middleware/auth');
 
 const router = express.Router();
 
-// GET /api/estaciones
+// GET /api/estaciones → todos los roles autenticados
 router.get('/', autenticarToken, async (req, res) => {
     try {
         const result = await query(`
@@ -35,7 +35,7 @@ router.get('/', autenticarToken, async (req, res) => {
     }
 });
 
-// POST /api/estaciones
+// POST /api/estaciones → solo admin
 router.post('/', autenticarToken, autorizarRol('admin'), async (req, res) => {
     try {
         const { nombre, latitud, longitud, tipo, nivel_critico, nivel_alerta, descripcion } = req.body;
@@ -54,7 +54,7 @@ router.post('/', autenticarToken, autorizarRol('admin'), async (req, res) => {
     }
 });
 
-// PUT /api/estaciones/:id
+// PUT /api/estaciones/:id → solo admin
 router.put('/:id', autenticarToken, autorizarRol('admin'), async (req, res) => {
     try {
         const { nombre, latitud, longitud, tipo, nivel_critico, nivel_alerta, descripcion, activo } = req.body;
@@ -81,10 +81,9 @@ router.put('/:id', autenticarToken, autorizarRol('admin'), async (req, res) => {
     }
 });
 
-// DELETE /api/estaciones/:id (soft delete)
+// DELETE /api/estaciones/:id → solo admin (soft delete)
 router.delete('/:id', autenticarToken, autorizarRol('admin'), async (req, res) => {
     try {
-        // Soft delete: marcamos como inactiva
         await query('UPDATE estaciones SET activo = false WHERE id = $1', [req.params.id]);
         res.json({ mensaje: 'Estación desactivada exitosamente' });
     } catch (error) {
