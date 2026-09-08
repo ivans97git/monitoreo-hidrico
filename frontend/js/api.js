@@ -87,9 +87,8 @@ class API {
         const params = new URLSearchParams(filtros).toString();
         return await this.request(`/alertas?${params}`);
     }
-    async generarAlertaManual(data) {
-        return await this.request('/alertas/generar', { method: 'POST', body: JSON.stringify(data) });
-    }
+    async generarAlertaManual(data) { return await this.request('/alertas/generar', { method: 'POST', body: JSON.stringify(data) }); }
+    async eliminarAlerta(id) { return await this.request(`/alertas/${id}`, { method: 'DELETE' }); }
 }
 
 const api = new API();
