@@ -145,4 +145,18 @@ router.get('/descargar/:filename', autenticarToken, (req, res) => {
     });
 });
 
+// DELETE /api/alertas/:id
+router.delete('/:id', autenticarToken, async (req, res) => {
+    try {
+        const result = await query('DELETE FROM alertas WHERE id = $1 RETURNING id', [req.params.id]);
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'Alerta no encontrada' });
+        }
+        res.json({ mensaje: 'Alerta eliminada exitosamente' });
+    } catch (error) {
+        console.error('Error eliminando alerta:', error);
+        res.status(500).json({ error: 'Error al eliminar alerta' });
+    }
+});
+
 module.exports = router;
