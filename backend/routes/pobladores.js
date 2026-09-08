@@ -4,14 +4,14 @@ const { autenticarToken, autorizarRol } = require('../middleware/auth');
 
 const router = express.Router();
 
-// GET /api/pobladores?estacion_id=1
+// GET /api/pobladores → todos los roles
 router.get('/', autenticarToken, async (req, res) => {
     try {
         const { estacion_id } = req.query;
         let sql = `SELECT p.*, e.nombre as estacion_nombre 
                    FROM pobladores p 
                    LEFT JOIN estaciones e ON p.estacion_id = e.id 
-                   WHERE 1=1`;
+                   WHERE p.activo = true`;
         const params = [];
         if (estacion_id) {
             sql += ' AND p.estacion_id = $1';
@@ -26,7 +26,7 @@ router.get('/', autenticarToken, async (req, res) => {
     }
 });
 
-// POST /api/pobladores
+// POST /api/pobladores → solo admin
 router.post('/', autenticarToken, autorizarRol('admin'), async (req, res) => {
     try {
         const { nombre, apellido, telefono, ubicacion, latitud, longitud, estacion_id } = req.body;
@@ -40,11 +40,12 @@ router.post('/', autenticarToken, autorizarRol('admin'), async (req, res) => {
         );
         res.status(201).json(result.rows[0]);
     } catch (error) {
+        console.error('Error creando poblador:', error);
         res.status(500).json({ error: 'Error al crear poblador' });
     }
 });
 
-// PUT /api/pobladores/:id
+// PUT /api/pobladores/:id → solo admin
 router.put('/:id', autenticarToken, autorizarRol('admin'), async (req, res) => {
     try {
         const { nombre, apellido, telefono, ubicacion, latitud, longitud, estacion_id, activo } = req.body;
@@ -64,16 +65,18 @@ router.put('/:id', autenticarToken, autorizarRol('admin'), async (req, res) => {
         if (result.rows.length === 0) return res.status(404).json({ error: 'Poblador no encontrado' });
         res.json(result.rows[0]);
     } catch (error) {
+        console.error('Error actualizando poblador:', error);
         res.status(500).json({ error: 'Error al actualizar poblador' });
     }
 });
 
-// DELETE /api/pobladores/:id
+// DELETE /api/pobladores/:id → solo admin (soft delete)
 router.delete('/:id', autenticarToken, autorizarRol('admin'), async (req, res) => {
     try {
-        await query('DELETE FROM pobladores WHERE id = $1', [req.params.id]);
-        res.json({ mensaje: 'Poblador eliminado' });
+        await query('UPDATE pobladores SET activo = false WHERE id = $1', [req.params.id]);
+        res.json({ mensaje: 'Poblador desactivado exitosamente' });
     } catch (error) {
+        console.error('Error eliminando poblador:', error);
         res.status(500).json({ error: 'Error al eliminar poblador' });
     }
 });
