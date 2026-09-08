@@ -5,10 +5,7 @@ const excelService = require('../services/excelService');
 
 const router = express.Router();
 
-// =============================================
 // GET /api/alertas
-// Historial de alertas (con filtros opcionales)
-// =============================================
 router.get('/', autenticarToken, async (req, res) => {
     try {
         const { desde, hasta, estacion_id, limite = 50 } = req.query;
@@ -49,10 +46,7 @@ router.get('/', autenticarToken, async (req, res) => {
     }
 });
 
-// =============================================
 // POST /api/alertas/generar
-// Generar alerta manual (independiente de mediciones)
-// =============================================
 router.post('/generar', autenticarToken, async (req, res) => {
     try {
         const { estacion_id, tipo_alerta, mensaje } = req.body;
@@ -63,14 +57,12 @@ router.post('/generar', autenticarToken, async (req, res) => {
 
         const tipo = tipo_alerta === 'CRÍTICO' ? 'CRÍTICO' : 'ALERTA';
 
-        // Obtener estación
         const estRes = await query('SELECT * FROM estaciones WHERE id = $1', [estacion_id]);
         if (estRes.rows.length === 0) {
             return res.status(404).json({ error: 'Estación no encontrada' });
         }
         const estacion = estRes.rows[0];
 
-        // Obtener pobladores activos de la estación
         const pobRes = await query(
             'SELECT * FROM pobladores WHERE estacion_id = $1 AND activo = true',
             [estacion_id]
@@ -79,19 +71,12 @@ router.post('/generar', autenticarToken, async (req, res) => {
             return res.status(400).json({ error: 'No hay pobladores para esta estación' });
         }
 
-        // Generar Excel (sin valor ni fecha de medición)
         const resultado = await excelService.generarExcelPobladores(
-            pobRes.rows,
-            estacion,
-            tipo,
-            null,      // valor nulo
-            null       // fecha nula
+            pobRes.rows, estacion, tipo, null, new Date()
         );
 
-        // Mensaje de alerta
         const mensajeFinal = mensaje || `Alerta manual ${tipo}`;
 
-        // Insertar alerta SIN medicion_id
         await query(
             `INSERT INTO alertas (estacion_id, tipo_alerta, archivo_excel, mensaje)
              VALUES ($1, $2, $3, $4)`,
@@ -103,17 +88,27 @@ router.post('/generar', autenticarToken, async (req, res) => {
             archivo: resultado.filename,
             tipo_alerta: tipo
         });
-
     } catch (error) {
         console.error('Error generando alerta manual:', error);
         res.status(500).json({ error: 'Error al generar alerta manual' });
     }
 });
 
-// =============================================
+// DELETE /api/alertas/:id
+router.delete('/:id', autenticarToken, async (req, res) => {
+    try {
+        const result = await query('DELETE FROM alertas WHERE id = $1 RETURNING id', [req.params.id]);
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'Alerta no encontrada' });
+        }
+        res.json({ mensaje: 'Alerta eliminada exitosamente' });
+    } catch (error) {
+        console.error('Error eliminando alerta:', error);
+        res.status(500).json({ error: 'Error al eliminar alerta' });
+    }
+});
+
 // GET /api/alertas/:id
-// Obtener una alerta específica
-// =============================================
 router.get('/:id', autenticarToken, async (req, res) => {
     try {
         const result = await query(
@@ -130,32 +125,6 @@ router.get('/:id', autenticarToken, async (req, res) => {
     } catch (error) {
         console.error('Error obteniendo alerta:', error);
         res.status(500).json({ error: 'Error al obtener alerta' });
-    }
-});
-
-// =============================================
-// GET /api/alertas/descargar/:filename
-// Descargar archivo Excel de una alerta
-// (opcional, ya existe en server.js, pero puede estar aquí)
-// =============================================
-router.get('/descargar/:filename', autenticarToken, (req, res) => {
-    const filePath = path.join(__dirname, '..', 'temp', req.params.filename);
-    res.download(filePath, (err) => {
-        if (err) res.status(404).json({ error: 'Archivo no encontrado' });
-    });
-});
-
-// DELETE /api/alertas/:id
-router.delete('/:id', autenticarToken, async (req, res) => {
-    try {
-        const result = await query('DELETE FROM alertas WHERE id = $1 RETURNING id', [req.params.id]);
-        if (result.rows.length === 0) {
-            return res.status(404).json({ error: 'Alerta no encontrada' });
-        }
-        res.json({ mensaje: 'Alerta eliminada exitosamente' });
-    } catch (error) {
-        console.error('Error eliminando alerta:', error);
-        res.status(500).json({ error: 'Error al eliminar alerta' });
     }
 });
 
