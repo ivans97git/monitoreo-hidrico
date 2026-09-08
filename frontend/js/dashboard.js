@@ -1,8 +1,10 @@
-// ==================== MAPA ====================
+// ==================== VARIABLES GLOBALES ====================
 let map;
 let marcadores = {};
 let estacionesData = [];
+let usuarioActual = null;
 
+// ==================== MAPA ====================
 function inicializarMapa() {
     if (map) return;
     map = L.map('map').setView(CONFIG.MAPA.centroInicial, CONFIG.MAPA.zoomInicial);
@@ -156,8 +158,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             window.location.href = 'login.html';
             return;
         }
-        const usuario = await api.getUsuarioActual();
-        document.getElementById('userName').textContent = usuario.nombre || usuario.username;
+
+        usuarioActual = await api.getUsuarioActual();
+        document.getElementById('userName').textContent = usuarioActual.nombre || usuarioActual.username;
+        aplicarPermisos(usuarioActual.rol);
+
         inicializarMapa();
         await cargarEstaciones();
         inicializarGraficos();
@@ -165,6 +170,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         await cargarPobladores();
         inicializarFormularios();
         await cargarEstacionesAdmin();
+
         document.getElementById('loadingScreen').style.display = 'none';
     } catch (error) {
         console.error('Error inicializando:', error);
@@ -172,6 +178,34 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 });
 
+function aplicarPermisos(rol) {
+    const esAdmin = rol === 'admin';
+    const esEditor = rol === 'editor' || esAdmin;
+
+    // Ocultar pestañas de administración para no admins
+    if (!esAdmin) {
+        const tabEstaciones = document.querySelector('[data-bs-target="#estaciones"]');
+        const tabPobladores = document.querySelector('[data-bs-target="#pobladores"]');
+        if (tabEstaciones) tabEstaciones.style.display = 'none';
+        if (tabPobladores) tabPobladores.style.display = 'none';
+    }
+
+    // Ocultar pestaña de registro y alerta manual para visor
+    if (!esEditor) {
+        const tabRegistro = document.querySelector('[data-bs-target="#mediciones"]');
+        const tabAlertas = document.querySelector('[data-bs-target="#alertas"]');
+        if (tabRegistro) tabRegistro.style.display = 'none';
+        if (tabAlertas) tabAlertas.style.display = 'none';
+    }
+
+    // Para editor, ocultar gestión de mediciones y estaciones
+    if (!esAdmin) {
+        const tabGestionMediciones = document.querySelector('[data-bs-target="#gestionMediciones"]');
+        if (tabGestionMediciones) tabGestionMediciones.style.display = 'none';
+    }
+}
+
+// ==================== FORMULARIOS ====================
 function inicializarFormularios() {
     const formMedicion = document.getElementById('formMedicion');
     if (formMedicion) formMedicion.addEventListener('submit', registrarMedicion);
@@ -518,7 +552,7 @@ async function cargarAlertas() {
                 <small>${new Date(alerta.fecha_generacion || alerta.fecha_envio).toLocaleString()}</small>
                 <p class="mb-0">${alerta.mensaje || ''}</p>
                 ${alerta.archivo_excel ? `<a href="${CONFIG.API_URL.replace('/api','')}/api/descargar/${alerta.archivo_excel}" class="btn btn-sm btn-outline-success mt-1" download>Descargar Excel</a>` : ''}
-                <button class="btn btn-sm btn-outline-danger mt-1" onclick="eliminarAlerta(${alerta.id})"><i class="fas fa-trash"></i> Eliminar</button>
+                ${usuarioActual && usuarioActual.rol === 'admin' ? `<button class="btn btn-sm btn-outline-danger mt-1" onclick="eliminarAlerta(${alerta.id})"><i class="fas fa-trash"></i> Eliminar</button>` : ''}
             </div>
         `).join('');
     } catch (error) {
