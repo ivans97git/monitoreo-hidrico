@@ -209,32 +209,23 @@ async function registrarMedicion(e) {
         if (resultado.alerta_generada && resultado.archivo_excel) {
             const enlace = `${CONFIG.API_URL.replace('/api','')}/api/descargar/${resultado.archivo_excel}`;
 
-            // Referencias al modal personalizado
             const modal = document.getElementById('modalAlerta');
             const btnDescargar = document.getElementById('btnDescargarModal');
             const btnCancelar = document.getElementById('btnCancelarModal');
 
             if (modal && btnDescargar && btnCancelar) {
-                // Configurar descarga
                 btnDescargar.onclick = () => {
                     window.location.href = enlace;
                     modal.style.display = 'none';
                 };
-
-                // Cancelar
                 btnCancelar.onclick = () => {
                     modal.style.display = 'none';
                 };
-
-                // Cerrar al hacer clic fuera del contenido
                 modal.onclick = (e) => {
                     if (e.target === modal) modal.style.display = 'none';
                 };
-
-                // Mostrar modal
                 modal.style.display = 'flex';
             } else {
-                // Fallback con confirm
                 const confirmar = confirm('⚠️ Por favor, realice el aviso correspondiente a través de WhatsApp a los pobladores cercanos.\n\nAl presionar Aceptar se descargará el listado de pobladores.');
                 if (confirmar) window.location.href = enlace;
             }
@@ -527,6 +518,7 @@ async function cargarAlertas() {
                 <small>${new Date(alerta.fecha_generacion || alerta.fecha_envio).toLocaleString()}</small>
                 <p class="mb-0">${alerta.mensaje || ''}</p>
                 ${alerta.archivo_excel ? `<a href="${CONFIG.API_URL.replace('/api','')}/api/descargar/${alerta.archivo_excel}" class="btn btn-sm btn-outline-success mt-1" download>Descargar Excel</a>` : ''}
+                <button class="btn btn-sm btn-outline-danger mt-1" onclick="eliminarAlerta(${alerta.id})"><i class="fas fa-trash"></i> Eliminar</button>
             </div>
         `).join('');
     } catch (error) {
@@ -553,6 +545,16 @@ async function generarAlertaManual() {
     }
 }
 
+async function eliminarAlerta(id) {
+    if (!confirm('¿Eliminar esta alerta?')) return;
+    try {
+        await api.eliminarAlerta(id);
+        await cargarAlertas();
+    } catch (error) {
+        alert('Error al eliminar alerta: ' + error.message);
+    }
+}
+
 function mostrarMensaje(mensaje, tipo) {
     const div = document.getElementById('mensajeRegistro');
     div.innerHTML = `<div class="alert alert-${tipo} alert-dismissible fade show" role="alert">
@@ -562,7 +564,6 @@ function mostrarMensaje(mensaje, tipo) {
     setTimeout(() => div.innerHTML = '', 5000);
 }
 
-// Evento para cargar datos al cambiar a cada pestaña
 document.addEventListener('shown.bs.tab', (e) => {
     if (e.target.getAttribute('data-bs-target') === '#gestionMediciones') {
         cargarMediciones();
