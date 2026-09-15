@@ -34,6 +34,7 @@ app.use('/api/mediciones', require('./routes/mediciones'));
 app.use('/api/pobladores', require('./routes/pobladores'));
 app.use('/api/alertas', require('./routes/alertas'));
 app.use('/api/refugios', require('./routes/refugios'));
+app.use('/api/familias', require('./routes/familias'));
 app.use('/api/nucleos', require('./routes/nucleos'));
 app.use('/api/personas', require('./routes/personas'));
 app.use('/api/asistencias', require('./routes/asistencias'));
