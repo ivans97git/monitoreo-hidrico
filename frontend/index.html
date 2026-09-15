@@ -10,13 +10,11 @@
     <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
-    <!-- Pantalla de carga -->
     <div id="loadingScreen" class="loading-screen">
         <div class="spinner-border text-primary" role="status"></div>
         <p class="mt-3">Cargando sistema...</p>
     </div>
 
-    <!-- Barra de navegación -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
         <div class="container-fluid">
             <a class="navbar-brand" href="#">
@@ -40,12 +38,10 @@
         </div>
     </nav>
 
-    <!-- Contenedor principal -->
     <div class="container-fluid main-container">
         <div class="row">
-            <!-- Panel lateral con pestañas -->
             <div class="col-md-3 sidebar">
-                <ul class="nav nav-tabs" id="mainTabs" role="tablist">
+                <ul class="nav nav-tabs flex-column" id="mainTabs" role="tablist">
                     <li class="nav-item">
                         <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#mediciones">
                             <i class="fas fa-edit me-1"></i> Registrar
@@ -76,6 +72,26 @@
                             <i class="fas fa-users me-1"></i> Pobladores
                         </button>
                     </li>
+                    <li class="nav-item">
+                        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#refugios">
+                            <i class="fas fa-home me-1"></i> Refugios
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#nucleos">
+                            <i class="fas fa-people-roof me-1"></i> Núcleos
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#asistencias">
+                            <i class="fas fa-hand-holding-heart me-1"></i> Asistencias
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#vehiculos">
+                            <i class="fas fa-truck me-1"></i> Vehículos
+                        </button>
+                    </li>
                 </ul>
 
                 <div class="tab-content p-3">
@@ -100,6 +116,10 @@
                             <div class="mb-3">
                                 <label class="form-label">Valor</label>
                                 <input type="number" class="form-control" id="inputValor" step="0.01" min="0" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">% Reservorio de agua (opcional)</label>
+                                <input type="number" class="form-control" id="inputReservorio" step="0.1" min="0" max="100" placeholder="0-100">
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">Fecha y hora (opcional)</label>
@@ -192,6 +212,7 @@
                             </div>
                             <div class="mb-2"><input type="number" step="0.01" class="form-control" id="estNivelAlerta" placeholder="Nivel de alerta (ej: 3.5)"></div>
                             <div class="mb-2"><input type="number" step="0.01" class="form-control" id="estNivelCritico" placeholder="Nivel crítico (ej: 5.0)"></div>
+                            <div class="mb-2"><input type="number" step="0.01" class="form-control" id="estAlturaColapso" placeholder="Altura de colapso de defensas (m)"></div>
                             <div class="mb-2"><textarea class="form-control" id="estDescripcion" placeholder="Descripción"></textarea></div>
                             <button type="submit" class="btn btn-primary btn-sm">Guardar</button>
                             <button type="button" class="btn btn-secondary btn-sm" onclick="cancelarEdicionEstacion()">Cancelar</button>
@@ -214,21 +235,152 @@
                             <input type="hidden" id="pobId">
                             <div class="mb-2"><input type="text" class="form-control" id="pobNombre" placeholder="Nombre" required></div>
                             <div class="mb-2"><input type="text" class="form-control" id="pobApellido" placeholder="Apellido" required></div>
-                            <div class="mb-2"><input type="tel" class="form-control" id="pobTelefono" placeholder="Teléfono (con código país)"></div>
+                            <div class="mb-2"><input type="text" class="form-control" id="pobDni" placeholder="DNI"></div>
+                            <div class="mb-2"><input type="number" class="form-control" id="pobEdad" placeholder="Edad"></div>
+                            <div class="mb-2"><input type="tel" class="form-control" id="pobTelefono" placeholder="Teléfono"></div>
+                            <div class="mb-2"><input type="text" class="form-control" id="pobTrabajo" placeholder="Trabajo / ocupación"></div>
+                            <div class="mb-2"><textarea class="form-control" id="pobProblemasSalud" placeholder="Problemas de salud"></textarea></div>
                             <div class="mb-2"><input type="text" class="form-control" id="pobUbicacion" placeholder="Ubicación / Dirección"></div>
                             <div class="mb-2">
                                 <select class="form-select" id="pobEstacion" required>
                                     <option value="">Asignar estación...</option>
                                 </select>
                             </div>
+                            <div class="mb-2">
+                                <select class="form-select" id="pobRefugio">
+                                    <option value="">Asignar refugio (opcional)...</option>
+                                </select>
+                            </div>
+                            <div class="mb-2">
+                                <select class="form-select" id="pobNucleo">
+                                    <option value="">Asignar núcleo familiar (opcional)...</option>
+                                </select>
+                            </div>
                             <button type="submit" class="btn btn-primary btn-sm">Guardar</button>
                             <button type="button" class="btn btn-secondary btn-sm" onclick="cancelarEdicionPoblador()">Cancelar</button>
+                        </form>
+                    </div>
+
+                    <!-- Refugios -->
+                    <div class="tab-pane fade" id="refugios">
+                        <h6 class="mb-3">Gestión de Refugios</h6>
+                        <button class="btn btn-success btn-sm mb-3" onclick="nuevoRefugio()">
+                            <i class="fas fa-plus me-1"></i> Nuevo refugio
+                        </button>
+                        <div id="listaRefugios"></div>
+                        <form id="formRefugio" style="display:none;" class="mt-3">
+                            <input type="hidden" id="refId">
+                            <div class="mb-2"><input type="text" class="form-control" id="refNombre" placeholder="Nombre" required></div>
+                            <div class="mb-2"><input type="text" class="form-control" id="refDireccion" placeholder="Dirección"></div>
+                            <div class="mb-2"><input type="number" step="any" class="form-control" id="refLatitud" placeholder="Latitud"></div>
+                            <div class="mb-2"><input type="number" step="any" class="form-control" id="refLongitud" placeholder="Longitud"></div>
+                            <div class="mb-2"><input type="number" class="form-control" id="refCapacidad" placeholder="Capacidad máxima"></div>
+                            <div class="mb-2"><input type="number" class="form-control" id="refOcupacion" placeholder="Ocupación actual"></div>
+                            <div class="mb-2"><input type="text" class="form-control" id="refEncargado" placeholder="Encargado"></div>
+                            <div class="mb-2"><input type="tel" class="form-control" id="refTelefono" placeholder="Teléfono"></div>
+                            <div class="mb-2"><textarea class="form-control" id="refObservaciones" placeholder="Observaciones"></textarea></div>
+                            <button type="submit" class="btn btn-primary btn-sm">Guardar</button>
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="cancelarEdicionRefugio()">Cancelar</button>
+                        </form>
+                    </div>
+
+                    <!-- Núcleos familiares -->
+                    <div class="tab-pane fade" id="nucleos">
+                        <h6 class="mb-3">Núcleos Familiares</h6>
+                        <div class="mb-2">
+                            <select class="form-select" id="selectRefugioNucleo" onchange="cargarNucleos()">
+                                <option value="">Todos los refugios</option>
+                            </select>
+                        </div>
+                        <button class="btn btn-success btn-sm mb-3" onclick="nuevoNucleo()">
+                            <i class="fas fa-plus me-1"></i> Nuevo núcleo
+                        </button>
+                        <div id="listaNucleos"></div>
+                        <form id="formNucleo" style="display:none;" class="mt-3">
+                            <input type="hidden" id="nucId">
+                            <div class="mb-2"><input type="text" class="form-control" id="nucApellido" placeholder="Apellido de familia" required></div>
+                            <div class="mb-2">
+                                <select class="form-select" id="nucRefugio">
+                                    <option value="">Sin refugio asignado</option>
+                                </select>
+                            </div>
+                            <div class="mb-2">
+                                <select class="form-select" id="nucEstacion">
+                                    <option value="">Sin estación asignada</option>
+                                </select>
+                            </div>
+                            <div class="mb-2"><input type="text" class="form-control" id="nucDireccion" placeholder="Dirección de origen"></div>
+                            <div class="mb-2"><input type="date" class="form-control" id="nucFechaIngreso"></div>
+                            <div class="mb-2"><textarea class="form-control" id="nucObservaciones" placeholder="Observaciones"></textarea></div>
+                            <button type="submit" class="btn btn-primary btn-sm">Guardar</button>
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="cancelarEdicionNucleo()">Cancelar</button>
+                        </form>
+                    </div>
+
+                    <!-- Asistencias -->
+                    <div class="tab-pane fade" id="asistencias">
+                        <h6 class="mb-3">Asistencias Brindadas</h6>
+                        <div class="mb-2">
+                            <select class="form-select" id="selectNucleoAsistencia" onchange="cargarAsistencias()">
+                                <option value="">Todos los núcleos</option>
+                            </select>
+                        </div>
+                        <button class="btn btn-success btn-sm mb-3" onclick="nuevaAsistencia()">
+                            <i class="fas fa-plus me-1"></i> Nueva asistencia
+                        </button>
+                        <div id="listaAsistencias"></div>
+                        <form id="formAsistencia" style="display:none;" class="mt-3">
+                            <div class="mb-2">
+                                <select class="form-select" id="asiNucleo" required>
+                                    <option value="">Seleccionar núcleo...</option>
+                                </select>
+                            </div>
+                            <div class="mb-2">
+                                <select class="form-select" id="asiTipo" required>
+                                    <option value="alimentacion">Alimentación</option>
+                                    <option value="medica">Asistencia médica</option>
+                                    <option value="ropa">Ropa</option>
+                                    <option value="traslado">Traslado</option>
+                                    <option value="abrigo">Abrigo</option>
+                                    <option value="otro">Otro</option>
+                                </select>
+                            </div>
+                            <div class="mb-2"><textarea class="form-control" id="asiDescripcion" placeholder="Descripción"></textarea></div>
+                            <button type="submit" class="btn btn-primary btn-sm">Guardar</button>
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="cancelarEdicionAsistencia()">Cancelar</button>
+                        </form>
+                    </div>
+
+                    <!-- Vehículos -->
+                    <div class="tab-pane fade" id="vehiculos">
+                        <h6 class="mb-3">Vehículos de Asistencia</h6>
+                        <div class="mb-2">
+                            <input type="date" class="form-control" id="vehFiltroDesde" onchange="cargarVehiculos()">
+                        </div>
+                        <div class="mb-2">
+                            <input type="date" class="form-control" id="vehFiltroHasta" onchange="cargarVehiculos()">
+                        </div>
+                        <button class="btn btn-success btn-sm mb-3" onclick="nuevoVehiculo()">
+                            <i class="fas fa-plus me-1"></i> Nuevo registro
+                        </button>
+                        <h6 class="mt-3">Resumen por entidad y día</h6>
+                        <div id="resumenVehiculos"></div>
+                        <hr>
+                        <h6>Registros</h6>
+                        <div id="listaVehiculos"></div>
+                        <form id="formVehiculo" style="display:none;" class="mt-3">
+                            <div class="mb-2"><input type="text" class="form-control" id="vehEntidad" placeholder="Entidad (Bomberos, Defensa Civil, etc.)" required></div>
+                            <div class="mb-2"><input type="text" class="form-control" id="vehTipo" placeholder="Tipo de vehículo"></div>
+                            <div class="mb-2"><input type="number" class="form-control" id="vehCantidad" placeholder="Cantidad" value="1"></div>
+                            <div class="mb-2"><input type="date" class="form-control" id="vehFecha"></div>
+                            <div class="mb-2"><textarea class="form-control" id="vehDescripcion" placeholder="Descripción"></textarea></div>
+                            <button type="submit" class="btn btn-primary btn-sm">Guardar</button>
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="cancelarEdicionVehiculo()">Cancelar</button>
                         </form>
                     </div>
                 </div>
             </div>
 
-            <!-- Mapa -->
             <div class="col-md-9 map-container">
                 <div id="map"></div>
                 <div class="map-legend">
@@ -263,6 +415,10 @@
                         </select>
                     </div>
                     <div class="mb-3">
+                        <label class="form-label">% Reservorio</label>
+                        <input type="number" step="0.1" class="form-control" id="editReservorio">
+                    </div>
+                    <div class="mb-3">
                         <label class="form-label">Fecha y hora</label>
                         <input type="datetime-local" class="form-control" id="editFechaHora">
                     </div>
@@ -279,7 +435,7 @@
         </div>
     </div>
 
-    <!-- Modal personalizado para alerta automática -->
+    <!-- Modal alerta automática -->
     <div id="modalAlerta" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:9999; align-items:center; justify-content:center;">
         <div style="background:white; border-radius:10px; max-width:400px; width:90%; padding:20px; box-shadow:0 4px 10px rgba(0,0,0,0.3);">
             <h5 style="color:#d9534f; font-weight:bold;">⚠️ Alerta Hidrológica</h5>
@@ -292,7 +448,6 @@
         </div>
     </div>
 
-    <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -300,7 +455,7 @@
     <script src="js/config.js"></script>
     <script src="js/api.js"></script>
     <script src="js/auth.js"></script>
-    <!--<script src="js/mapa.js"></script>-->
+    <script src="js/mapa.js"></script>
     <script src="js/dashboard.js"></script>
     <script src="js/graficos.js"></script>
 </body>
