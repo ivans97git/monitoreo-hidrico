@@ -32,6 +32,11 @@ app.use('/api/estaciones', require('./routes/estaciones'));
 app.use('/api/mediciones', require('./routes/mediciones'));
 app.use('/api/pobladores', require('./routes/pobladores'));
 app.use('/api/alertas', require('./routes/alertas'));
+app.use('/api/refugios', require('./routes/refugios'));
+app.use('/api/nucleos', require('./routes/nucleos'));
+app.use('/api/personas', require('./routes/personas'));
+app.use('/api/asistencias', require('./routes/asistencias'));
+app.use('/api/vehiculos', require('./routes/vehiculos'));
 
 app.get('/api/descargar/:filename', (req, res) => {
     const filePath = path.join(__dirname, 'temp', req.params.filename);
