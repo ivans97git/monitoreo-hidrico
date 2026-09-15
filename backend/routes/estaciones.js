@@ -4,26 +4,15 @@ const { autenticarToken, autorizarRol } = require('../middleware/auth');
 
 const router = express.Router();
 
-// GET /api/estaciones → todos los roles autenticados
 router.get('/', autenticarToken, async (req, res) => {
     try {
         const result = await query(`
             SELECT e.*,
-                (SELECT m.valor FROM mediciones m 
-                 WHERE m.estacion_id = e.id AND m.tipo_medicion = 'nivel_rio'
-                 ORDER BY m.fecha_hora DESC LIMIT 1) as ultima_medicion_rio,
-                (SELECT m.fecha_hora FROM mediciones m 
-                 WHERE m.estacion_id = e.id AND m.tipo_medicion = 'nivel_rio'
-                 ORDER BY m.fecha_hora DESC LIMIT 1) as fecha_ultima_medicion_rio,
-                (SELECT m.valor FROM mediciones m 
-                 WHERE m.estacion_id = e.id AND m.tipo_medicion = 'nivel_rio'
-                 ORDER BY m.fecha_hora DESC LIMIT 1 OFFSET 1) as medicion_anterior_rio,
-                (SELECT m.valor FROM mediciones m 
-                 WHERE m.estacion_id = e.id AND m.tipo_medicion = 'precipitacion'
-                 ORDER BY m.fecha_hora DESC LIMIT 1) as ultima_precipitacion,
-                (SELECT m.fecha_hora FROM mediciones m 
-                 WHERE m.estacion_id = e.id AND m.tipo_medicion = 'precipitacion'
-                 ORDER BY m.fecha_hora DESC LIMIT 1) as fecha_ultima_precipitacion
+                (SELECT m.valor FROM mediciones m WHERE m.estacion_id = e.id AND m.tipo_medicion = 'nivel_rio' ORDER BY m.fecha_hora DESC LIMIT 1) as ultima_medicion_rio,
+                (SELECT m.fecha_hora FROM mediciones m WHERE m.estacion_id = e.id AND m.tipo_medicion = 'nivel_rio' ORDER BY m.fecha_hora DESC LIMIT 1) as fecha_ultima_medicion_rio,
+                (SELECT m.valor FROM mediciones m WHERE m.estacion_id = e.id AND m.tipo_medicion = 'nivel_rio' ORDER BY m.fecha_hora DESC LIMIT 1 OFFSET 1) as medicion_anterior_rio,
+                (SELECT m.valor FROM mediciones m WHERE m.estacion_id = e.id AND m.tipo_medicion = 'precipitacion' ORDER BY m.fecha_hora DESC LIMIT 1) as ultima_precipitacion,
+                (SELECT m.fecha_hora FROM mediciones m WHERE m.estacion_id = e.id AND m.tipo_medicion = 'precipitacion' ORDER BY m.fecha_hora DESC LIMIT 1) as fecha_ultima_precipitacion
             FROM estaciones e
             WHERE e.activo = true
             ORDER BY e.nombre
@@ -35,17 +24,16 @@ router.get('/', autenticarToken, async (req, res) => {
     }
 });
 
-// POST /api/estaciones → solo admin
 router.post('/', autenticarToken, autorizarRol('admin'), async (req, res) => {
     try {
-        const { nombre, latitud, longitud, tipo, nivel_critico, nivel_alerta, descripcion } = req.body;
+        const { nombre, latitud, longitud, tipo, nivel_critico, nivel_alerta, altura_colapso_defensa, descripcion } = req.body;
         if (!nombre || !latitud || !longitud || !tipo) {
             return res.status(400).json({ error: 'Faltan campos obligatorios' });
         }
         const result = await query(
-            `INSERT INTO estaciones (nombre, latitud, longitud, tipo, nivel_critico, nivel_alerta, descripcion)
-             VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
-            [nombre, latitud, longitud, tipo, nivel_critico, nivel_alerta, descripcion]
+            `INSERT INTO estaciones (nombre, latitud, longitud, tipo, nivel_critico, nivel_alerta, altura_colapso_defensa, descripcion)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
+            [nombre, latitud, longitud, tipo, nivel_critico, nivel_alerta, altura_colapso_defensa, descripcion]
         );
         res.status(201).json(result.rows[0]);
     } catch (error) {
@@ -54,10 +42,9 @@ router.post('/', autenticarToken, autorizarRol('admin'), async (req, res) => {
     }
 });
 
-// PUT /api/estaciones/:id → solo admin
 router.put('/:id', autenticarToken, autorizarRol('admin'), async (req, res) => {
     try {
-        const { nombre, latitud, longitud, tipo, nivel_critico, nivel_alerta, descripcion, activo } = req.body;
+        const { nombre, latitud, longitud, tipo, nivel_critico, nivel_alerta, altura_colapso_defensa, descripcion, activo } = req.body;
         const result = await query(
             `UPDATE estaciones SET
                 nombre = COALESCE($1, nombre),
@@ -66,28 +53,24 @@ router.put('/:id', autenticarToken, autorizarRol('admin'), async (req, res) => {
                 tipo = COALESCE($4, tipo),
                 nivel_critico = COALESCE($5, nivel_critico),
                 nivel_alerta = COALESCE($6, nivel_alerta),
-                descripcion = COALESCE($7, descripcion),
-                activo = COALESCE($8, activo)
-             WHERE id = $9 RETURNING *`,
-            [nombre, latitud, longitud, tipo, nivel_critico, nivel_alerta, descripcion, activo, req.params.id]
+                altura_colapso_defensa = COALESCE($7, altura_colapso_defensa),
+                descripcion = COALESCE($8, descripcion),
+                activo = COALESCE($9, activo)
+             WHERE id = $10 RETURNING *`,
+            [nombre, latitud, longitud, tipo, nivel_critico, nivel_alerta, altura_colapso_defensa, descripcion, activo, req.params.id]
         );
-        if (result.rows.length === 0) {
-            return res.status(404).json({ error: 'Estación no encontrada' });
-        }
+        if (result.rows.length === 0) return res.status(404).json({ error: 'Estación no encontrada' });
         res.json(result.rows[0]);
     } catch (error) {
-        console.error('Error actualizando estación:', error);
         res.status(500).json({ error: 'Error al actualizar estación' });
     }
 });
 
-// DELETE /api/estaciones/:id → solo admin (soft delete)
 router.delete('/:id', autenticarToken, autorizarRol('admin'), async (req, res) => {
     try {
         await query('UPDATE estaciones SET activo = false WHERE id = $1', [req.params.id]);
-        res.json({ mensaje: 'Estación desactivada exitosamente' });
+        res.json({ mensaje: 'Estación desactivada' });
     } catch (error) {
-        console.error('Error eliminando estación:', error);
         res.status(500).json({ error: 'Error al eliminar estación' });
     }
 });
