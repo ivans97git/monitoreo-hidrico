@@ -14,7 +14,7 @@ const corsOptions = {
         'http://localhost:8080',
         'http://localhost:3000'
     ],
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true
 };
@@ -22,11 +22,12 @@ app.use(cors(corsOptions));
 app.options('*', cors(corsOptions));
 app.use(helmet());
 
-const limiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 200 });
+const limiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 300 });
 app.use('/api/', limiter);
 
 app.use(express.json({ limit: '10mb' }));
 
+// Rutas
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/estaciones', require('./routes/estaciones'));
 app.use('/api/mediciones', require('./routes/mediciones'));
@@ -38,6 +39,7 @@ app.use('/api/personas', require('./routes/personas'));
 app.use('/api/asistencias', require('./routes/asistencias'));
 app.use('/api/vehiculos', require('./routes/vehiculos'));
 
+// Descarga de archivos Excel
 app.get('/api/descargar/:filename', (req, res) => {
     const filePath = path.join(__dirname, 'temp', req.params.filename);
     res.download(filePath, (err) => {
