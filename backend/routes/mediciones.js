@@ -5,7 +5,6 @@ const { verificarYGenerarAlertaAutomatica } = require('../services/alertService'
 
 const router = express.Router();
 
-// GET /api/mediciones → todos los roles
 router.get('/', autenticarToken, async (req, res) => {
     try {
         const { estacion_id, tipo, desde, hasta, limite = 100 } = req.query;
@@ -17,12 +16,12 @@ router.get('/', autenticarToken, async (req, res) => {
             WHERE 1=1
         `;
         const params = [];
-        let paramCount = 1;
-        if (estacion_id) { sql += ` AND m.estacion_id = $${paramCount}`; params.push(estacion_id); paramCount++; }
-        if (tipo) { sql += ` AND m.tipo_medicion = $${paramCount}`; params.push(tipo); paramCount++; }
-        if (desde) { sql += ` AND m.fecha_hora >= $${paramCount}`; params.push(desde); paramCount++; }
-        if (hasta) { sql += ` AND m.fecha_hora <= $${paramCount}`; params.push(hasta); paramCount++; }
-        sql += ` ORDER BY m.fecha_hora DESC LIMIT $${paramCount}`;
+        let c = 1;
+        if (estacion_id) { sql += ` AND m.estacion_id = $${c}`; params.push(estacion_id); c++; }
+        if (tipo) { sql += ` AND m.tipo_medicion = $${c}`; params.push(tipo); c++; }
+        if (desde) { sql += ` AND m.fecha_hora >= $${c}`; params.push(desde); c++; }
+        if (hasta) { sql += ` AND m.fecha_hora <= $${c}`; params.push(hasta); c++; }
+        sql += ` ORDER BY m.fecha_hora DESC LIMIT $${c}`;
         params.push(Math.min(parseInt(limite) || 100, 1000));
         const result = await query(sql, params);
         res.json(result.rows);
@@ -32,10 +31,19 @@ router.get('/', autenticarToken, async (req, res) => {
     }
 });
 
-// POST /api/mediciones → admin y editor
+router.get('/:id', autenticarToken, async (req, res) => {
+    try {
+        const result = await query('SELECT * FROM mediciones WHERE id = $1', [req.params.id]);
+        if (result.rows.length === 0) return res.status(404).json({ error: 'Medición no encontrada' });
+        res.json(result.rows[0]);
+    } catch (error) {
+        res.status(500).json({ error: 'Error al obtener medición' });
+    }
+});
+
 router.post('/', autenticarToken, autorizarRol('admin', 'editor'), async (req, res) => {
     try {
-        const { estacion_id, valor, tipo_medicion, observaciones, fecha_hora } = req.body;
+        const { estacion_id, valor, tipo_medicion, observaciones, fecha_hora, porcentaje_reservorio } = req.body;
         if (!estacion_id || !valor || !tipo_medicion) {
             return res.status(400).json({ error: 'Datos incompletos' });
         }
@@ -44,9 +52,9 @@ router.post('/', autenticarToken, autorizarRol('admin', 'editor'), async (req, r
         const estacion = estacionRes.rows[0];
         const fecha = fecha_hora || new Date();
         const result = await query(
-            `INSERT INTO mediciones (estacion_id, usuario_id, valor, tipo_medicion, observaciones, fecha_hora)
-             VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
-            [estacion_id, req.usuario.id, valor, tipo_medicion, observaciones, fecha]
+            `INSERT INTO mediciones (estacion_id, usuario_id, valor, tipo_medicion, observaciones, fecha_hora, porcentaje_reservorio)
+             VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
+            [estacion_id, req.usuario.id, valor, tipo_medicion, observaciones, fecha, porcentaje_reservorio || null]
         );
         const medicion = result.rows[0];
         const alerta = await verificarYGenerarAlertaAutomatica(medicion, estacion);
@@ -61,35 +69,33 @@ router.post('/', autenticarToken, autorizarRol('admin', 'editor'), async (req, r
     }
 });
 
-// PUT /api/mediciones/:id → admin y editor
 router.put('/:id', autenticarToken, autorizarRol('admin', 'editor'), async (req, res) => {
     try {
-        const { valor, tipo_medicion, observaciones, fecha_hora, estacion_id } = req.body;
+        const { valor, tipo_medicion, observaciones, fecha_hora, estacion_id, porcentaje_reservorio } = req.body;
         const result = await query(
             `UPDATE mediciones SET
                 valor = COALESCE($1, valor),
                 tipo_medicion = COALESCE($2, tipo_medicion),
                 observaciones = COALESCE($3, observaciones),
                 fecha_hora = COALESCE($4, fecha_hora),
-                estacion_id = COALESCE($5, estacion_id)
-             WHERE id = $6 RETURNING *`,
-            [valor, tipo_medicion, observaciones, fecha_hora, estacion_id, req.params.id]
+                estacion_id = COALESCE($5, estacion_id),
+                porcentaje_reservorio = COALESCE($6, porcentaje_reservorio)
+             WHERE id = $7 RETURNING *`,
+            [valor, tipo_medicion, observaciones, fecha_hora, estacion_id, porcentaje_reservorio, req.params.id]
         );
         if (result.rows.length === 0) return res.status(404).json({ error: 'Medición no encontrada' });
         res.json(result.rows[0]);
     } catch (error) {
-        console.error('Error actualizando medición:', error);
         res.status(500).json({ error: 'Error al actualizar medición' });
     }
 });
 
-// DELETE /api/mediciones/:id → admin y editor (soft delete)
 router.delete('/:id', autenticarToken, autorizarRol('admin', 'editor'), async (req, res) => {
     try {
-        await query('UPDATE mediciones SET activo = false WHERE id = $1', [req.params.id]);
-        res.json({ mensaje: 'Medición desactivada exitosamente' });
+        await query('DELETE FROM alertas WHERE medicion_id = $1', [req.params.id]);
+        await query('DELETE FROM mediciones WHERE id = $1', [req.params.id]);
+        res.json({ mensaje: 'Medición eliminada' });
     } catch (error) {
-        console.error('Error eliminando medición:', error);
         res.status(500).json({ error: 'Error al eliminar medición' });
     }
 });
