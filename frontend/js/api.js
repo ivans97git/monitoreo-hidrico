@@ -63,14 +63,25 @@ class API {
     async actualizarEstacion(id, data) { return await this.request(`/estaciones/${id}`, { method: 'PUT', body: JSON.stringify(data) }); }
     async eliminarEstacion(id) { return await this.request(`/estaciones/${id}`, { method: 'DELETE' }); }
 
-    // ============ POBLADORES ============
-    async getPobladores(estacionId = null) {
-        const endpoint = estacionId ? `/pobladores?estacion_id=${estacionId}` : '/pobladores';
+    // ============ FAMILIAS ============
+    async getFamilias(filtros = {}) {
+        const params = new URLSearchParams(filtros).toString();
+        return await this.request(`/familias?${params}`);
+    }
+    async getFamilia(id) { return await this.request(`/familias/${id}`); }
+    async crearFamilia(data) { return await this.request('/familias', { method: 'POST', body: JSON.stringify(data) }); }
+    async actualizarFamilia(id, data) { return await this.request(`/familias/${id}`, { method: 'PUT', body: JSON.stringify(data) }); }
+    async eliminarFamilia(id) { return await this.request(`/familias/${id}`, { method: 'DELETE' }); }
+
+    // ============ PERSONAS ============
+    async getPersonas(familiaId = null) {
+        const endpoint = familiaId ? `/personas?familia_id=${familiaId}` : '/personas';
         return await this.request(endpoint);
     }
-    async crearPoblador(data) { return await this.request('/pobladores', { method: 'POST', body: JSON.stringify(data) }); }
-    async actualizarPoblador(id, data) { return await this.request(`/pobladores/${id}`, { method: 'PUT', body: JSON.stringify(data) }); }
-    async eliminarPoblador(id) { return await this.request(`/pobladores/${id}`, { method: 'DELETE' }); }
+    async getPersona(id) { return await this.request(`/personas/${id}`); }
+    async crearPersona(data) { return await this.request('/personas', { method: 'POST', body: JSON.stringify(data) }); }
+    async actualizarPersona(id, data) { return await this.request(`/personas/${id}`, { method: 'PUT', body: JSON.stringify(data) }); }
+    async eliminarPersona(id) { return await this.request(`/personas/${id}`, { method: 'DELETE' }); }
 
     // ============ MEDICIONES ============
     async getMediciones(filtros = {}) {
@@ -99,26 +110,6 @@ class API {
     async actualizarOcupacion(id, ocupacion_actual) {
         return await this.request(`/refugios/${id}/ocupacion`, { method: 'PATCH', body: JSON.stringify({ ocupacion_actual }) });
     }
-
-    // ============ NÚCLEOS FAMILIARES ============
-    async getNucleos(filtros = {}) {
-        const params = new URLSearchParams(filtros).toString();
-        return await this.request(`/nucleos?${params}`);
-    }
-    async getNucleo(id) { return await this.request(`/nucleos/${id}`); }
-    async crearNucleo(data) { return await this.request('/nucleos', { method: 'POST', body: JSON.stringify(data) }); }
-    async actualizarNucleo(id, data) { return await this.request(`/nucleos/${id}`, { method: 'PUT', body: JSON.stringify(data) }); }
-    async eliminarNucleo(id) { return await this.request(`/nucleos/${id}`, { method: 'DELETE' }); }
-
-    // ============ PERSONAS ============
-    async getPersonas(nucleoId = null) {
-        const endpoint = nucleoId ? `/personas?nucleo_id=${nucleoId}` : '/personas';
-        return await this.request(endpoint);
-    }
-    async getPersona(id) { return await this.request(`/personas/${id}`); }
-    async crearPersona(data) { return await this.request('/personas', { method: 'POST', body: JSON.stringify(data) }); }
-    async actualizarPersona(id, data) { return await this.request(`/personas/${id}`, { method: 'PUT', body: JSON.stringify(data) }); }
-    async eliminarPersona(id) { return await this.request(`/personas/${id}`, { method: 'DELETE' }); }
 
     // ============ ASISTENCIAS ============
     async getAsistencias(filtros = {}) {
