@@ -4,20 +4,21 @@ const { autenticarToken, autorizarRol } = require('../middleware/auth');
 
 const router = express.Router();
 
-// GET /api/personas?nucleo_id=1
+// GET /api/personas?familia_id=1
 router.get('/', autenticarToken, async (req, res) => {
     try {
-        const { nucleo_id } = req.query;
-        let sql = `SELECT p.*, n.apellido as nucleo_apellido 
+        const { familia_id } = req.query;
+        let sql = `SELECT p.*, f.responsable as familia_responsable 
                    FROM personas p 
-                   LEFT JOIN nucleos_familiares n ON p.nucleo_id = n.id
+                   LEFT JOIN familias f ON p.familia_id = f.id
                    WHERE p.activo = true`;
         const params = [];
-        if (nucleo_id) { sql += ' AND p.nucleo_id = $1'; params.push(nucleo_id); }
+        if (familia_id) { sql += ' AND p.familia_id = $1'; params.push(familia_id); }
         sql += ' ORDER BY p.apellido, p.nombre';
         const result = await query(sql, params);
         res.json(result.rows);
     } catch (error) {
+        console.error('Error obteniendo personas:', error);
         res.status(500).json({ error: 'Error al obtener personas' });
     }
 });
@@ -36,14 +37,14 @@ router.get('/:id', autenticarToken, async (req, res) => {
 // POST /api/personas
 router.post('/', autenticarToken, autorizarRol('admin', 'editor'), async (req, res) => {
     try {
-        const { nucleo_id, nombre, apellido, dni, fecha_nacimiento, edad, telefono, parentesco, trabajo, problemas_salud, medicacion, discapacidad } = req.body;
-        if (!nucleo_id || !nombre || !apellido) {
-            return res.status(400).json({ error: 'Núcleo, nombre y apellido son obligatorios' });
+        const { familia_id, nombre, apellido, dni, fecha_nacimiento, edad, telefono, parentesco, trabajo, problemas_salud, medicacion, discapacidad } = req.body;
+        if (!familia_id || !nombre || !apellido) {
+            return res.status(400).json({ error: 'Familia, nombre y apellido son obligatorios' });
         }
         const result = await query(
-            `INSERT INTO personas (nucleo_id, nombre, apellido, dni, fecha_nacimiento, edad, telefono, parentesco, trabajo, problemas_salud, medicacion, discapacidad)
+            `INSERT INTO personas (familia_id, nombre, apellido, dni, fecha_nacimiento, edad, telefono, parentesco, trabajo, problemas_salud, medicacion, discapacidad)
              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING *`,
-            [nucleo_id, nombre, apellido, dni, fecha_nacimiento, edad, telefono, parentesco, trabajo, problemas_salud, medicacion, discapacidad || false]
+            [familia_id, nombre, apellido, dni, fecha_nacimiento, edad, telefono, parentesco, trabajo, problemas_salud, medicacion, discapacidad || false]
         );
         res.status(201).json(result.rows[0]);
     } catch (error) {
@@ -76,6 +77,7 @@ router.put('/:id', autenticarToken, autorizarRol('admin', 'editor'), async (req,
         if (result.rows.length === 0) return res.status(404).json({ error: 'Persona no encontrada' });
         res.json(result.rows[0]);
     } catch (error) {
+        console.error('Error actualizando persona:', error);
         res.status(500).json({ error: 'Error al actualizar persona' });
     }
 });
@@ -86,6 +88,7 @@ router.delete('/:id', autenticarToken, autorizarRol('admin', 'editor'), async (r
         await query('UPDATE personas SET activo = false WHERE id = $1', [req.params.id]);
         res.json({ mensaje: 'Persona desactivada' });
     } catch (error) {
+        console.error('Error eliminando persona:', error);
         res.status(500).json({ error: 'Error al eliminar persona' });
     }
 });
