@@ -4,7 +4,8 @@ let marcadores = {};
 let estacionesData = [];
 let usuarioActual = null;
 let refugiosData = [];
-let nucleosData = [];
+let familiasData = [];
+let familiaActual = null;
 
 // ==================== MAPA ====================
 function inicializarMapa() {
@@ -125,13 +126,11 @@ function actualizarSelectEstaciones() {
     const selects = [
         document.getElementById('selectEstacion'),
         document.getElementById('selectEstacionGrafico'),
-        document.getElementById('selectEstacionPoblador'),
-        document.getElementById('pobEstacion'),
         document.getElementById('selectEstacionMediciones'),
         document.getElementById('selectEstacionRio'),
         document.getElementById('selectEstacionLluvia'),
         document.getElementById('selectEstacionAlerta'),
-        document.getElementById('nucEstacion')
+        document.getElementById('famEstacion')
     ];
     selects.forEach(select => {
         if (!select) return;
@@ -171,11 +170,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         await cargarEstaciones();
         inicializarGraficos();
         await cargarAlertas();
-        await cargarPobladores();
         inicializarFormularios();
         await cargarEstacionesAdmin();
         await cargarRefugios();
-        await cargarNucleos();
+        await cargarFamilias();
         await cargarAsistencias();
         await cargarVehiculos();
 
@@ -191,7 +189,7 @@ function aplicarPermisos(rol) {
     const esEditor = rol === 'editor' || esAdmin;
 
     if (!esAdmin) {
-        ['#estaciones', '#pobladores', '#refugios', '#nucleos'].forEach(sel => {
+        ['#estaciones', '#refugios'].forEach(sel => {
             const el = document.querySelector(`[data-bs-target="${sel}"]`);
             if (el) el.style.display = 'none';
         });
@@ -218,14 +216,11 @@ function inicializarFormularios() {
     const formEstacion = document.getElementById('formEstacion');
     if (formEstacion) formEstacion.addEventListener('submit', guardarEstacion);
 
-    const formPoblador = document.getElementById('formPoblador');
-    if (formPoblador) formPoblador.addEventListener('submit', guardarPoblador);
+    const formFamilia = document.getElementById('formFamilia');
+    if (formFamilia) formFamilia.addEventListener('submit', guardarFamilia);
 
     const formRefugio = document.getElementById('formRefugio');
     if (formRefugio) formRefugio.addEventListener('submit', guardarRefugio);
-
-    const formNucleo = document.getElementById('formNucleo');
-    if (formNucleo) formNucleo.addEventListener('submit', guardarNucleo);
 
     const formAsistencia = document.getElementById('formAsistencia');
     if (formAsistencia) formAsistencia.addEventListener('submit', guardarAsistencia);
@@ -255,8 +250,8 @@ async function registrarMedicion(e) {
         btn.disabled = true;
         btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Registrando...';
 
-        const resultado = await api.registrarMedicion({ 
-            estacion_id, valor, tipo_medicion, observaciones, fecha_hora, porcentaje_reservorio 
+        const resultado = await api.registrarMedicion({
+            estacion_id, valor, tipo_medicion, observaciones, fecha_hora, porcentaje_reservorio
         });
         let mensaje = '✅ Medición registrada exitosamente';
 
@@ -470,154 +465,244 @@ async function eliminarEstacion(id) {
     }
 }
 
-// ==================== POBLADORES ====================
-function nuevoPoblador() {
-    document.getElementById('formPoblador').reset();
-    document.getElementById('pobId').value = '';
-    document.getElementById('formPoblador').style.display = 'block';
+// ==================== FAMILIAS ====================
+async function cargarFamilias() {
+    try {
+        const estado = document.getElementById('filtroEstadoFamilia')?.value;
+        const prioridad = document.getElementById('filtroPrioridadFamilia')?.value;
+        const filtros = {};
+        if (estado) filtros.estado = estado;
+
+        familiasData = await api.getFamilias(filtros);
+        if (prioridad) familiasData = familiasData.filter(f => f.prioridad === prioridad);
+
+        // Actualizar select de familias en asistencias
+        const selAsi = document.getElementById('selectFamiliaAsistencia');
+        if (selAsi) {
+            const current = selAsi.value;
+            selAsi.innerHTML = '<option value="">Todas las familias</option>';
+            familiasData.forEach(f => {
+                const opt = document.createElement('option');
+                opt.value = f.id;
+                opt.textContent = `${f.numero_familia || ''} ${f.responsable || ''}`;
+                selAsi.appendChild(opt);
+            });
+            if ([...selAsi.options].some(o => o.value === current)) selAsi.value = current;
+        }
+
+        const lista = document.getElementById('listaFamilias');
+        if (!lista) return;
+        if (!familiasData.length) {
+            lista.innerHTML = '<p class="text-muted">No hay familias registradas</p>';
+            return;
+        }
+        lista.innerHTML = `
+            <div class="table-responsive">
+                <table class="table table-sm table-striped">
+                    <thead>
+                        <tr>
+                            <th>N.º / Resp.</th>
+                            <th>Ubicación</th>
+                            <th>Pers.</th>
+                            <th>Prioridad</th>
+                            <th>Transporte</th>
+                            <th>Animales</th>
+                            <th>Destino</th>
+                            <th>Estado</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${familiasData.map(f => `
+                            <tr>
+                                <td><strong>${f.numero_familia || '-'}</strong><br><small>${f.responsable || ''}</small></td>
+                                <td>${f.ubicacion || '-'}</td>
+                                <td>${f.cantidad_integrantes || 0}</td>
+                                <td>
+                                    <span class="badge ${f.prioridad === 'ALTA' ? 'bg-danger' : (f.prioridad === 'MEDIA' ? 'bg-warning' : 'bg-secondary')}">${f.prioridad || '-'}</span><br>
+                                    <small>${f.necesidad || ''}</small>
+                                </td>
+                                <td>${f.transporte ? '<i class="fas fa-check text-success"></i>' : '<i class="fas fa-times text-muted"></i>'}${f.tipo_transporte ? `<br><small>${f.tipo_transporte}</small>` : ''}</td>
+                                <td>${f.animales ? '<i class="fas fa-check text-success"></i>' : '<i class="fas fa-times text-muted"></i>'}${f.detalle_animales ? `<br><small>${f.detalle_animales}</small>` : ''}</td>
+                                <td>${f.destino || '-'}</td>
+                                <td><span class="badge ${f.estado === 'CERRADO' ? 'bg-success' : (f.estado === 'EVACUADO' ? 'bg-info' : (f.estado === 'ASISTIDO' ? 'bg-primary' : 'bg-secondary'))}">${f.estado || 'PENDIENTE'}</span></td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-info" onclick="verFamilia(${f.id})" title="Ver integrantes"><i class="fas fa-users"></i></button>
+                                    <button class="btn btn-sm btn-outline-primary" onclick="editarFamilia(${f.id})"><i class="fas fa-edit"></i></button>
+                                    <button class="btn btn-sm btn-outline-danger" onclick="eliminarFamilia(${f.id})"><i class="fas fa-trash"></i></button>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+        `;
+    } catch (error) {
+        console.error('Error cargando familias:', error);
+    }
+}
+
+function nuevaFamilia() {
+    document.getElementById('formFamilia').reset();
+    document.getElementById('famId').value = '';
+    document.getElementById('formFamilia').style.display = 'block';
+    cargarSelectRefugios('famRefugio');
     actualizarSelectEstaciones();
-    cargarSelectRefugios('pobRefugio');
-    cargarSelectNucleos('pobNucleo');
 }
 
-function cancelarEdicionPoblador() {
-    document.getElementById('formPoblador').style.display = 'none';
+function cancelarEdicionFamilia() {
+    document.getElementById('formFamilia').style.display = 'none';
 }
 
-async function guardarPoblador(e) {
+async function guardarFamilia(e) {
     e.preventDefault();
-    const id = document.getElementById('pobId').value;
+    const id = document.getElementById('famId').value;
     const data = {
-        nombre: document.getElementById('pobNombre').value,
-        apellido: document.getElementById('pobApellido').value,
-        dni: document.getElementById('pobDni').value,
-        edad: parseInt(document.getElementById('pobEdad').value) || null,
-        telefono: document.getElementById('pobTelefono').value,
-        trabajo: document.getElementById('pobTrabajo').value,
-        problemas_salud: document.getElementById('pobProblemasSalud').value,
-        ubicacion: document.getElementById('pobUbicacion').value,
-        estacion_id: document.getElementById('pobEstacion').value || null,
-        refugio_id: document.getElementById('pobRefugio').value || null,
-        nucleo_id: document.getElementById('pobNucleo').value || null
+        numero_familia: document.getElementById('famNumero').value,
+        responsable: document.getElementById('famResponsable').value,
+        telefono: document.getElementById('famTelefono').value,
+        ubicacion: document.getElementById('famUbicacion').value,
+        cantidad_personas: parseInt(document.getElementById('famCantidad').value) || 0,
+        prioridad: document.getElementById('famPrioridad').value || null,
+        necesidad: document.getElementById('famNecesidad').value,
+        transporte: document.getElementById('famTransporte').checked,
+        tipo_transporte: document.getElementById('famTipoTransporte').value,
+        animales: document.getElementById('famAnimales').checked,
+        detalle_animales: document.getElementById('famDetalleAnimales').value,
+        destino: document.getElementById('famDestino').value,
+        estado: document.getElementById('famEstado').value,
+        refugio_id: document.getElementById('famRefugio').value || null,
+        estacion_id: document.getElementById('famEstacion').value || null,
+        observaciones: document.getElementById('famObservaciones').value
     };
     try {
-        if (id) await api.actualizarPoblador(id, data);
-        else await api.crearPoblador(data);
-        cancelarEdicionPoblador();
-        await cargarPobladores();
-    } catch (error) {
-        alert('Error al guardar poblador: ' + error.message);
-    }
-}
-
-async function cargarPobladores() {
-    const selectEstacion = document.getElementById('selectEstacionPoblador');
-    const estacionId = selectEstacion ? selectEstacion.value : null;
-    try {
-        const pobladores = await api.getPobladores(estacionId);
-        const lista = document.getElementById('listaPobladores');
-        if (!pobladores.length) {
-            lista.innerHTML = '<p class="text-muted">No hay pobladores registrados</p>';
-            return;
-        }
-        lista.innerHTML = pobladores.map(p => `
-            <div class="item-listado d-flex justify-content-between align-items-center">
-                <div>
-                    <strong>${p.nombre} ${p.apellido}</strong> ${p.edad ? '(' + p.edad + ')' : ''}<br>
-                    <small>DNI: ${p.dni || 'N/A'} | Tel: ${p.telefono || 'N/A'}</small><br>
-                    <small>Trabajo: ${p.trabajo || 'N/A'}</small><br>
-                    <small>Salud: ${p.problemas_salud || 'Sin datos'}</small><br>
-                    <small>Ubicación: ${p.ubicacion || 'Sin ubicación'} | Refugio: ${p.refugio_nombre || '-'}</small>
-                </div>
-                <div>
-                    <button class="btn btn-sm btn-outline-primary" onclick="editarPoblador(${p.id})"><i class="fas fa-edit"></i></button>
-                    <button class="btn btn-sm btn-outline-danger" onclick="eliminarPoblador(${p.id})"><i class="fas fa-trash"></i></button>
-                </div>
-            </div>
-        `).join('');
-    } catch (error) {
-        console.error('Error cargando pobladores:', error);
-    }
-}
-
-async function editarPoblador(id) {
-    const pobladores = await api.getPobladores();
-    const pob = pobladores.find(p => p.id == id);
-    if (!pob) return;
-    cargarSelectRefugios('pobRefugio');
-    cargarSelectNucleos('pobNucleo');
-    document.getElementById('pobId').value = pob.id;
-    document.getElementById('pobNombre').value = pob.nombre;
-    document.getElementById('pobApellido').value = pob.apellido;
-    document.getElementById('pobDni').value = pob.dni || '';
-    document.getElementById('pobEdad').value = pob.edad || '';
-    document.getElementById('pobTelefono').value = pob.telefono || '';
-    document.getElementById('pobTrabajo').value = pob.trabajo || '';
-    document.getElementById('pobProblemasSalud').value = pob.problemas_salud || '';
-    document.getElementById('pobUbicacion').value = pob.ubicacion || '';
-    document.getElementById('pobEstacion').value = pob.estacion_id || '';
-    document.getElementById('pobRefugio').value = pob.refugio_id || '';
-    document.getElementById('pobNucleo').value = pob.nucleo_id || '';
-    document.getElementById('formPoblador').style.display = 'block';
-}
-
-async function eliminarPoblador(id) {
-    if (!confirm('¿Eliminar este poblador?')) return;
-    try {
-        await api.eliminarPoblador(id);
-        await cargarPobladores();
-    } catch (error) {
-        alert('Error al eliminar: ' + error.message);
-    }
-}
-
-// ==================== ALERTAS ====================
-async function cargarAlertas() {
-    try {
-        const alertas = await api.getAlertas({ limite: 10 });
-        const lista = document.getElementById('listaAlertas');
-        if (!alertas.length) {
-            lista.innerHTML = '<p class="text-muted">No hay alertas registradas</p>';
-            return;
-        }
-        lista.innerHTML = alertas.map(alerta => `
-            <div class="list-group-item alerta-item ${alerta.tipo_alerta === 'CRÍTICO' ? 'alerta-critica' : ''}">
-                <div class="d-flex justify-content-between">
-                    <strong>${alerta.nombre_estacion || 'Estación ' + alerta.estacion_id}</strong>
-                    <span class="badge ${alerta.tipo_alerta === 'CRÍTICO' ? 'bg-danger' : 'bg-warning'}">${alerta.tipo_alerta}</span>
-                </div>
-                <small>${new Date(alerta.fecha_generacion || alerta.fecha_envio).toLocaleString()}</small>
-                <p class="mb-0">${alerta.mensaje || ''}</p>
-                ${alerta.archivo_excel ? `<a href="${CONFIG.API_URL.replace('/api','')}/api/descargar/${alerta.archivo_excel}" class="btn btn-sm btn-outline-success mt-1" download>Descargar Excel</a>` : ''}
-                ${usuarioActual && usuarioActual.rol === 'admin' ? `<button class="btn btn-sm btn-outline-danger mt-1" onclick="eliminarAlerta(${alerta.id})"><i class="fas fa-trash"></i></button>` : ''}
-            </div>
-        `).join('');
-    } catch (error) {
-        console.error('Error cargando alertas:', error);
-    }
-}
-
-async function generarAlertaManual() {
-    const estacion_id = document.getElementById('selectEstacionAlerta').value;
-    const tipo_alerta = document.getElementById('selectTipoAlertaManual').value;
-    const mensaje = document.getElementById('mensajeAlertaManual').value;
-    if (!estacion_id) { alert('Seleccione una estación'); return; }
-    try {
-        const data = await api.generarAlertaManual({ estacion_id, tipo_alerta, mensaje });
-        alert(`Alerta generada. Archivo: ${data.archivo}`);
-        await cargarAlertas();
+        if (id) await api.actualizarFamilia(id, data);
+        else await api.crearFamilia(data);
+        cancelarEdicionFamilia();
+        await cargarFamilias();
     } catch (error) {
         alert('Error: ' + error.message);
     }
 }
 
-async function eliminarAlerta(id) {
-    if (!confirm('¿Eliminar esta alerta?')) return;
+async function editarFamilia(id) {
+    await cargarSelectRefugios('famRefugio');
+    const f = familiasData.find(x => x.id == id);
+    if (!f) return;
+    document.getElementById('famId').value = f.id;
+    document.getElementById('famNumero').value = f.numero_familia || '';
+    document.getElementById('famResponsable').value = f.responsable || '';
+    document.getElementById('famTelefono').value = f.telefono || '';
+    document.getElementById('famUbicacion').value = f.ubicacion || '';
+    document.getElementById('famCantidad').value = f.cantidad_personas || '';
+    document.getElementById('famPrioridad').value = f.prioridad || '';
+    document.getElementById('famNecesidad').value = f.necesidad || '';
+    document.getElementById('famTransporte').checked = f.transporte || false;
+    document.getElementById('famTipoTransporte').value = f.tipo_transporte || '';
+    document.getElementById('famAnimales').checked = f.animales || false;
+    document.getElementById('famDetalleAnimales').value = f.detalle_animales || '';
+    document.getElementById('famDestino').value = f.destino || '';
+    document.getElementById('famEstado').value = f.estado || 'PENDIENTE';
+    document.getElementById('famRefugio').value = f.refugio_id || '';
+    document.getElementById('famEstacion').value = f.estacion_id || '';
+    document.getElementById('famObservaciones').value = f.observaciones || '';
+    document.getElementById('formFamilia').style.display = 'block';
+}
+
+async function eliminarFamilia(id) {
+    if (!confirm('¿Desactivar esta familia?')) return;
     try {
-        await api.eliminarAlerta(id);
-        await cargarAlertas();
+        await api.eliminarFamilia(id);
+        await cargarFamilias();
     } catch (error) {
-        alert('Error al eliminar alerta: ' + error.message);
+        alert('Error: ' + error.message);
+    }
+}
+
+async function verFamilia(id) {
+    try {
+        const data = await api.getFamilia(id);
+        familiaActual = data;
+
+        // Si existe un modal, mostrarlo
+        const modalEl = document.getElementById('modalFamilia');
+        if (modalEl) {
+            document.getElementById('modalFamTitulo').textContent = `Familia ${data.responsable || ''}`;
+            document.getElementById('modalFamInfo').innerHTML = `
+                <p><strong>Ubicación:</strong> ${data.ubicacion || '-'}</p>
+                <p><strong>Estado:</strong> ${data.estado}</p>
+                <p><strong>Prioridad:</strong> ${data.prioridad || '-'}</p>
+                <p><strong>Necesidad:</strong> ${data.necesidad || '-'}</p>
+            `;
+            const lista = document.getElementById('modalFamIntegrantes');
+            if (!data.personas || !data.personas.length) {
+                lista.innerHTML = '<p class="text-muted">Sin integrantes cargados</p>';
+            } else {
+                lista.innerHTML = data.personas.map(p => `
+                    <div class="item-listado mb-2">
+                        <strong>${p.nombre} ${p.apellido}</strong> (${p.parentesco || 'sin parentesco'})<br>
+                        <small>Edad: ${p.edad || 'N/A'} | DNI: ${p.dni || 'N/A'}</small><br>
+                        <small>Trabajo: ${p.trabajo || 'N/A'}</small><br>
+                        <small>Salud: ${p.problemas_salud || 'Sin datos'}</small>
+                        <button class="btn btn-sm btn-outline-danger mt-1" onclick="eliminarPersona(${p.id}, ${id})"><i class="fas fa-trash"></i></button>
+                    </div>
+                `).join('');
+            }
+            // Limpiar formulario de persona y preparar
+            const formPer = document.getElementById('formPersonaFamilia');
+            if (formPer) {
+                formPer.reset();
+                document.getElementById('perFamiliaId').value = id;
+            }
+            new bootstrap.Modal(modalEl).show();
+        } else {
+            // Fallback a alert
+            let html = `Familia ${data.responsable || ''}\nUbicación: ${data.ubicacion || '-'}\n\nIntegrantes:\n`;
+            if (!data.personas || !data.personas.length) {
+                html += 'Sin integrantes cargados\n';
+            } else {
+                data.personas.forEach(p => {
+                    html += `- ${p.nombre} ${p.apellido} (${p.parentesco || ''}) | Edad: ${p.edad || 'N/A'} | Trabajo: ${p.trabajo || 'N/A'} | Salud: ${p.problemas_salud || 'Sin datos'}\n`;
+                });
+            }
+            alert(html);
+        }
+    } catch (error) {
+        alert('Error: ' + error.message);
+    }
+}
+
+async function guardarPersonaFamilia(e) {
+    e.preventDefault();
+    const familiaId = document.getElementById('perFamiliaId').value;
+    const data = {
+        familia_id: familiaId,
+        nombre: document.getElementById('perNombre').value,
+        apellido: document.getElementById('perApellido').value,
+        dni: document.getElementById('perDni').value,
+        edad: parseInt(document.getElementById('perEdad').value) || null,
+        parentesco: document.getElementById('perParentesco').value,
+        trabajo: document.getElementById('perTrabajo').value,
+        problemas_salud: document.getElementById('perSalud').value,
+        discapacidad: document.getElementById('perDiscapacidad').checked
+    };
+    try {
+        await api.crearPersona(data);
+        await verFamilia(familiaId);
+        await cargarFamilias();
+    } catch (error) {
+        alert('Error al guardar integrante: ' + error.message);
+    }
+}
+
+async function eliminarPersona(id, familiaId) {
+    if (!confirm('¿Eliminar este integrante?')) return;
+    try {
+        await api.eliminarPersona(id);
+        await verFamilia(familiaId);
+        await cargarFamilias();
+    } catch (error) {
+        alert('Error: ' + error.message);
     }
 }
 
@@ -637,7 +722,7 @@ async function cargarRefugios() {
                                 <strong>${r.nombre}</strong><br>
                                 <small>Capacidad: ${r.capacidad_maxima} | Ocupación: ${r.ocupacion_actual} (${r.porcentaje_ocupacion}%)</small><br>
                                 <div class="progress" style="height:8px; margin-top:5px;">
-                                    <div class="progress-bar ${r.porcentaje_ocupacion >= 90 ? 'bg-danger' : (r.porcentaje_ocupacion >= 70 ? 'bg-warning' : 'bg-success')}" 
+                                    <div class="progress-bar ${r.porcentaje_ocupacion >= 90 ? 'bg-danger' : (r.porcentaje_ocupacion >= 70 ? 'bg-warning' : 'bg-success')}"
                                          style="width: ${r.porcentaje_ocupacion}%"></div>
                                 </div>
                                 <small>Encargado: ${r.encargado || '-'} | Tel: ${r.telefono || '-'}</small>
@@ -651,8 +736,7 @@ async function cargarRefugios() {
                 `).join('');
             }
         }
-        // Actualizar selects
-        const selects = ['selectRefugioNucleo', 'nucRefugio', 'pobRefugio'];
+        const selects = ['selectRefugioNucleo', 'famRefugio'];
         selects.forEach(id => {
             const sel = document.getElementById(id);
             if (!sel) return;
@@ -744,149 +828,13 @@ async function eliminarRefugio(id) {
     }
 }
 
-// ==================== NÚCLEOS FAMILIARES ====================
-async function cargarNucleos() {
-    try {
-        const selectRefugio = document.getElementById('selectRefugioNucleo');
-        const filtros = {};
-        if (selectRefugio && selectRefugio.value) filtros.refugio_id = selectRefugio.value;
-        nucleosData = await api.getNucleos(filtros);
-        const lista = document.getElementById('listaNucleos');
-        if (!lista) return;
-        if (!nucleosData.length) {
-            lista.innerHTML = '<p class="text-muted">No hay núcleos familiares</p>';
-            return;
-        }
-        lista.innerHTML = nucleosData.map(n => `
-            <div class="item-listado">
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <strong>Familia ${n.apellido}</strong> (${n.cantidad_integrantes} integrantes)<br>
-                        <small>Refugio: ${n.refugio_nombre || '-'} | Estación: ${n.estacion_nombre || '-'}</small><br>
-                        <small>Ingreso: ${n.fecha_ingreso ? new Date(n.fecha_ingreso).toLocaleDateString() : 'N/A'}</small>
-                    </div>
-                    <div>
-                        <button class="btn btn-sm btn-outline-info" onclick="verIntegrantes(${n.id})"><i class="fas fa-users"></i></button>
-                        <button class="btn btn-sm btn-outline-primary" onclick="editarNucleo(${n.id})"><i class="fas fa-edit"></i></button>
-                        <button class="btn btn-sm btn-outline-danger" onclick="eliminarNucleo(${n.id})"><i class="fas fa-trash"></i></button>
-                    </div>
-                </div>
-            </div>
-        `).join('');
-    } catch (error) {
-        console.error('Error cargando núcleos:', error);
-    }
-}
-
-async function cargarSelectNucleos(selectId) {
-    const sel = document.getElementById(selectId);
-    if (!sel) return;
-    if (!nucleosData.length) nucleosData = await api.getNucleos();
-    sel.innerHTML = '<option value="">Sin núcleo</option>';
-    nucleosData.forEach(n => {
-        const opt = document.createElement('option');
-        opt.value = n.id;
-        opt.textContent = `Familia ${n.apellido}`;
-        sel.appendChild(opt);
-    });
-}
-
-function nuevoNucleo() {
-    document.getElementById('formNucleo').reset();
-    document.getElementById('nucId').value = '';
-    document.getElementById('formNucleo').style.display = 'block';
-    cargarSelectRefugios('nucRefugio');
-}
-
-function cancelarEdicionNucleo() {
-    document.getElementById('formNucleo').style.display = 'none';
-}
-
-async function guardarNucleo(e) {
-    e.preventDefault();
-    const id = document.getElementById('nucId').value;
-    const data = {
-        apellido: document.getElementById('nucApellido').value,
-        refugio_id: document.getElementById('nucRefugio').value || null,
-        estacion_id: document.getElementById('nucEstacion').value || null,
-        direccion_origen: document.getElementById('nucDireccion').value,
-        fecha_ingreso: document.getElementById('nucFechaIngreso').value || null,
-        observaciones: document.getElementById('nucObservaciones').value
-    };
-    try {
-        if (id) await api.actualizarNucleo(id, data);
-        else await api.crearNucleo(data);
-        cancelarEdicionNucleo();
-        await cargarNucleos();
-        await cargarRefugios();
-    } catch (error) {
-        alert('Error al guardar núcleo: ' + error.message);
-    }
-}
-
-async function editarNucleo(id) {
-    await cargarSelectRefugios('nucRefugio');
-    const n = nucleosData.find(x => x.id == id);
-    if (!n) return;
-    document.getElementById('nucId').value = n.id;
-    document.getElementById('nucApellido').value = n.apellido;
-    document.getElementById('nucRefugio').value = n.refugio_id || '';
-    document.getElementById('nucEstacion').value = n.estacion_id || '';
-    document.getElementById('nucDireccion').value = n.direccion_origen || '';
-    document.getElementById('nucFechaIngreso').value = n.fecha_ingreso ? n.fecha_ingreso.split('T')[0] : '';
-    document.getElementById('nucObservaciones').value = n.observaciones || '';
-    document.getElementById('formNucleo').style.display = 'block';
-}
-
-async function eliminarNucleo(id) {
-    if (!confirm('¿Desactivar este núcleo?')) return;
-    try {
-        await api.eliminarNucleo(id);
-        await cargarNucleos();
-        await cargarRefugios();
-    } catch (error) {
-        alert('Error: ' + error.message);
-    }
-}
-
-async function verIntegrantes(nucleoId) {
-    try {
-        const data = await api.getNucleo(nucleoId);
-        let html = `<h6>Familia ${data.apellido}</h6><hr>`;
-        if (!data.personas || !data.personas.length) {
-            html += '<p class="text-muted">Sin integrantes</p>';
-        } else {
-            html += data.personas.map(p => `
-                <div class="item-listado mb-2">
-                    <strong>${p.nombre} ${p.apellido}</strong> (${p.parentesco || 'sin parentesco'})<br>
-                    <small>Edad: ${p.edad || 'N/A'} | DNI: ${p.dni || 'N/A'}</small><br>
-                    <small>Trabajo: ${p.trabajo || 'N/A'}</small><br>
-                    <small>Salud: ${p.problemas_salud || 'Sin datos'}</small><br>
-                    ${p.discapacidad ? '<span class="badge bg-warning">Discapacidad</span>' : ''}
-                </div>
-            `).join('');
-        }
-        alert(html.replace(/<[^>]*>/g, ''));
-    } catch (error) {
-        alert('Error: ' + error.message);
-    }
-}
-
 // ==================== ASISTENCIAS ====================
 async function cargarAsistencias() {
     try {
-        const selNucleo = document.getElementById('selectNucleoAsistencia');
-        if (selNucleo && selNucleo.options.length <= 1) {
-            const nucleos = await api.getNucleos();
-            nucleos.forEach(n => {
-                const opt = document.createElement('option');
-                opt.value = n.id;
-                opt.textContent = `Familia ${n.apellido}`;
-                selNucleo.appendChild(opt);
-            });
-        }
         const filtros = {};
-        if (selNucleo && selNucleo.value) filtros.nucleo_id = selNucleo.value;
+        const selFam = document.getElementById('selectFamiliaAsistencia');
+        if (selFam && selFam.value) filtros.nucleo_id = selFam.value;
+
         const asistencias = await api.getAsistencias(filtros);
         const lista = document.getElementById('listaAsistencias');
         if (!lista) return;
@@ -898,7 +846,7 @@ async function cargarAsistencias() {
             <div class="item-listado">
                 <div class="d-flex justify-content-between">
                     <div>
-                        <strong>${a.nucleo_apellido || 'N/A'}</strong> - <span class="badge bg-info">${a.tipo}</span><br>
+                        <strong>${a.nucleo_apellido || a.familia_responsable || 'N/A'}</strong> - <span class="badge bg-info">${a.tipo}</span><br>
                         <small>${new Date(a.fecha).toLocaleString()}</small><br>
                         <small>${a.descripcion || ''}</small>
                     </div>
@@ -914,7 +862,15 @@ async function cargarAsistencias() {
 function nuevaAsistencia() {
     document.getElementById('formAsistencia').reset();
     document.getElementById('formAsistencia').style.display = 'block';
-    cargarSelectNucleos('asiNucleo');
+    // Llenar select de familias
+    const sel = document.getElementById('asiFamilia');
+    sel.innerHTML = '<option value="">Seleccionar familia...</option>';
+    familiasData.forEach(f => {
+        const opt = document.createElement('option');
+        opt.value = f.id;
+        opt.textContent = `${f.numero_familia || ''} ${f.responsable || ''}`;
+        sel.appendChild(opt);
+    });
 }
 
 function cancelarEdicionAsistencia() {
@@ -924,7 +880,7 @@ function cancelarEdicionAsistencia() {
 async function guardarAsistencia(e) {
     e.preventDefault();
     const data = {
-        nucleo_id: document.getElementById('asiNucleo').value,
+        nucleo_id: document.getElementById('asiFamilia').value,
         tipo: document.getElementById('asiTipo').value,
         descripcion: document.getElementById('asiDescripcion').value
     };
@@ -1041,6 +997,56 @@ async function eliminarVehiculo(id) {
     }
 }
 
+// ==================== ALERTAS ====================
+async function cargarAlertas() {
+    try {
+        const alertas = await api.getAlertas({ limite: 10 });
+        const lista = document.getElementById('listaAlertas');
+        if (!alertas.length) {
+            lista.innerHTML = '<p class="text-muted">No hay alertas registradas</p>';
+            return;
+        }
+        lista.innerHTML = alertas.map(alerta => `
+            <div class="list-group-item alerta-item ${alerta.tipo_alerta === 'CRÍTICO' ? 'alerta-critica' : ''}">
+                <div class="d-flex justify-content-between">
+                    <strong>${alerta.nombre_estacion || 'Estación ' + alerta.estacion_id}</strong>
+                    <span class="badge ${alerta.tipo_alerta === 'CRÍTICO' ? 'bg-danger' : 'bg-warning'}">${alerta.tipo_alerta}</span>
+                </div>
+                <small>${new Date(alerta.fecha_generacion || alerta.fecha_envio).toLocaleString()}</small>
+                <p class="mb-0">${alerta.mensaje || ''}</p>
+                ${alerta.archivo_excel ? `<a href="${CONFIG.API_URL.replace('/api','')}/api/descargar/${alerta.archivo_excel}" class="btn btn-sm btn-outline-success mt-1" download>Descargar Excel</a>` : ''}
+                ${usuarioActual && usuarioActual.rol === 'admin' ? `<button class="btn btn-sm btn-outline-danger mt-1" onclick="eliminarAlerta(${alerta.id})"><i class="fas fa-trash"></i></button>` : ''}
+            </div>
+        `).join('');
+    } catch (error) {
+        console.error('Error cargando alertas:', error);
+    }
+}
+
+async function generarAlertaManual() {
+    const estacion_id = document.getElementById('selectEstacionAlerta').value;
+    const tipo_alerta = document.getElementById('selectTipoAlertaManual').value;
+    const mensaje = document.getElementById('mensajeAlertaManual').value;
+    if (!estacion_id) { alert('Seleccione una estación'); return; }
+    try {
+        const data = await api.generarAlertaManual({ estacion_id, tipo_alerta, mensaje });
+        alert(`Alerta generada. Archivo: ${data.archivo}`);
+        await cargarAlertas();
+    } catch (error) {
+        alert('Error: ' + error.message);
+    }
+}
+
+async function eliminarAlerta(id) {
+    if (!confirm('¿Eliminar esta alerta?')) return;
+    try {
+        await api.eliminarAlerta(id);
+        await cargarAlertas();
+    } catch (error) {
+        alert('Error al eliminar alerta: ' + error.message);
+    }
+}
+
 // ==================== UTILIDADES ====================
 function mostrarMensaje(mensaje, tipo) {
     const div = document.getElementById('mensajeRegistro');
@@ -1055,9 +1061,29 @@ document.addEventListener('shown.bs.tab', (e) => {
     const target = e.target.getAttribute('data-bs-target');
     if (target === '#gestionMediciones') cargarMediciones();
     if (target === '#estaciones') cargarEstacionesAdmin();
-    if (target === '#pobladores') cargarPobladores();
+    if (target === '#familias') cargarFamilias();
     if (target === '#refugios') cargarRefugios();
-    if (target === '#nucleos') cargarNucleos();
     if (target === '#asistencias') cargarAsistencias();
     if (target === '#vehiculos') cargarVehiculos();
 });
+
+// Exponer funciones globalmente
+window.cargarFamilias = cargarFamilias;
+window.nuevaFamilia = nuevaFamilia;
+window.cancelarEdicionFamilia = cancelarEdicionFamilia;
+window.guardarFamilia = guardarFamilia;
+window.editarFamilia = editarFamilia;
+window.eliminarFamilia = eliminarFamilia;
+window.verFamilia = verFamilia;
+window.guardarPersonaFamilia = guardarPersonaFamilia;
+window.eliminarPersona = eliminarPersona;
+window.nuevaAsistencia = nuevaAsistencia;
+window.cancelarEdicionAsistencia = cancelarEdicionAsistencia;
+window.guardarAsistencia = guardarAsistencia;
+window.eliminarAsistencia = eliminarAsistencia;
+window.nuevoVehiculo = nuevoVehiculo;
+window.cancelarEdicionVehiculo = cancelarEdicionVehiculo;
+window.guardarVehiculo = guardarVehiculo;
+window.eliminarVehiculo = eliminarVehiculo;
+window.eliminarAlerta = eliminarAlerta;
+window.generarAlertaManual = generarAlertaManual;
