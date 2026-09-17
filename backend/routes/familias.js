@@ -41,6 +41,7 @@ router.get('/:id', autenticarToken, async (req, res) => {
         );
         res.json({ ...famRes.rows[0], personas: personasRes.rows });
     } catch (error) {
+        console.error('Error obteniendo familia:', error);
         res.status(500).json({ error: 'Error al obtener familia' });
     }
 });
@@ -119,12 +120,13 @@ router.put('/:id', autenticarToken, autorizarRol('admin', 'editor'), async (req,
     }
 });
 
-// DELETE /api/familias/:id
+// DELETE /api/familias/:id (soft delete)
 router.delete('/:id', autenticarToken, autorizarRol('admin'), async (req, res) => {
     try {
         await query('UPDATE familias SET activo = false WHERE id = $1', [req.params.id]);
         res.json({ mensaje: 'Familia desactivada' });
     } catch (error) {
+        console.error('Error eliminando familia:', error);
         res.status(500).json({ error: 'Error al eliminar familia' });
     }
 });
