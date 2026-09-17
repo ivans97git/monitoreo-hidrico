@@ -68,18 +68,13 @@
                         </button>
                     </li>
                     <li class="nav-item">
-                        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#pobladores">
-                            <i class="fas fa-users me-1"></i> Pobladores
+                        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#familias">
+                            <i class="fas fa-house-user me-1"></i> Familias
                         </button>
                     </li>
                     <li class="nav-item">
                         <button class="nav-link" data-bs-toggle="tab" data-bs-target="#refugios">
                             <i class="fas fa-home me-1"></i> Refugios
-                        </button>
-                    </li>
-                    <li class="nav-item">
-                        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#nucleos">
-                            <i class="fas fa-people-roof me-1"></i> Núcleos
                         </button>
                     </li>
                     <li class="nav-item">
@@ -219,45 +214,82 @@
                         </form>
                     </div>
 
-                    <!-- Pobladores -->
-                    <div class="tab-pane fade" id="pobladores">
-                        <h6 class="mb-3">Gestión de Pobladores</h6>
-                        <div class="mb-3">
-                            <select class="form-select" id="selectEstacionPoblador" onchange="cargarPobladores()">
-                                <option value="">Todas las estaciones</option>
-                            </select>
+                    <!-- Familias -->
+                    <div class="tab-pane fade" id="familias">
+                        <h6 class="mb-3">Familias / Viviendas</h6>
+                        <div class="row mb-2">
+                            <div class="col-6">
+                                <select class="form-select form-select-sm" id="filtroEstadoFamilia" onchange="cargarFamilias()">
+                                    <option value="">Todos los estados</option>
+                                    <option value="PENDIENTE">Pendiente</option>
+                                    <option value="EVACUADO">Evacuado</option>
+                                    <option value="ASISTIDO">Asistido</option>
+                                    <option value="CERRADO">Cerrado</option>
+                                </select>
+                            </div>
+                            <div class="col-6">
+                                <select class="form-select form-select-sm" id="filtroPrioridadFamilia" onchange="cargarFamilias()">
+                                    <option value="">Todas las prioridades</option>
+                                    <option value="ALTA">Alta</option>
+                                    <option value="MEDIA">Media</option>
+                                    <option value="BAJA">Baja</option>
+                                </select>
+                            </div>
                         </div>
-                        <button class="btn btn-success btn-sm mb-3" onclick="nuevoPoblador()">
-                            <i class="fas fa-plus me-1"></i> Nuevo poblador
+                        <button class="btn btn-success btn-sm mb-3" onclick="nuevaFamilia()">
+                            <i class="fas fa-plus me-1"></i> Nueva familia
                         </button>
-                        <div id="listaPobladores"></div>
-                        <form id="formPoblador" style="display:none;" class="mt-3">
-                            <input type="hidden" id="pobId">
-                            <div class="mb-2"><input type="text" class="form-control" id="pobNombre" placeholder="Nombre" required></div>
-                            <div class="mb-2"><input type="text" class="form-control" id="pobApellido" placeholder="Apellido" required></div>
-                            <div class="mb-2"><input type="text" class="form-control" id="pobDni" placeholder="DNI"></div>
-                            <div class="mb-2"><input type="number" class="form-control" id="pobEdad" placeholder="Edad"></div>
-                            <div class="mb-2"><input type="tel" class="form-control" id="pobTelefono" placeholder="Teléfono"></div>
-                            <div class="mb-2"><input type="text" class="form-control" id="pobTrabajo" placeholder="Trabajo / ocupación"></div>
-                            <div class="mb-2"><textarea class="form-control" id="pobProblemasSalud" placeholder="Problemas de salud"></textarea></div>
-                            <div class="mb-2"><input type="text" class="form-control" id="pobUbicacion" placeholder="Ubicación / Dirección"></div>
+                        <div id="listaFamilias"></div>
+                        <form id="formFamilia" style="display:none;" class="mt-3">
+                            <input type="hidden" id="famId">
+                            <div class="mb-2"><input class="form-control form-control-sm" id="famNumero" placeholder="N.º Familia"></div>
+                            <div class="mb-2"><input class="form-control form-control-sm" id="famResponsable" placeholder="Responsable" required></div>
+                            <div class="mb-2"><input class="form-control form-control-sm" id="famTelefono" placeholder="Teléfono"></div>
+                            <div class="mb-2"><input class="form-control form-control-sm" id="famUbicacion" placeholder="Ubicación / Dirección"></div>
+                            <div class="row">
+                                <div class="col-6 mb-2"><input type="number" class="form-control form-control-sm" id="famCantidad" placeholder="Cant. personas"></div>
+                                <div class="col-6 mb-2">
+                                    <select class="form-select form-select-sm" id="famPrioridad">
+                                        <option value="">Prioridad</option>
+                                        <option value="ALTA">Alta</option>
+                                        <option value="MEDIA">Media</option>
+                                        <option value="BAJA">Baja</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="mb-2"><textarea class="form-control form-control-sm" id="famNecesidad" placeholder="Prioridad / necesidad"></textarea></div>
+                            <div class="form-check mb-2">
+                                <input type="checkbox" class="form-check-input" id="famTransporte">
+                                <label class="form-check-label" for="famTransporte">Requiere transporte</label>
+                            </div>
+                            <div class="mb-2"><input class="form-control form-control-sm" id="famTipoTransporte" placeholder="Tipo de transporte (ambulancia, camión...)"></div>
+                            <div class="form-check mb-2">
+                                <input type="checkbox" class="form-check-input" id="famAnimales">
+                                <label class="form-check-label" for="famAnimales">Tiene animales</label>
+                            </div>
+                            <div class="mb-2"><input class="form-control form-control-sm" id="famDetalleAnimales" placeholder="Detalle animales"></div>
+                            <div class="mb-2"><input class="form-control form-control-sm" id="famDestino" placeholder="Destino"></div>
                             <div class="mb-2">
-                                <select class="form-select" id="pobEstacion" required>
-                                    <option value="">Asignar estación...</option>
+                                <select class="form-select form-select-sm" id="famEstado">
+                                    <option value="PENDIENTE">Pendiente</option>
+                                    <option value="EVACUADO">Evacuado</option>
+                                    <option value="ASISTIDO">Asistido</option>
+                                    <option value="CERRADO">Cerrado</option>
                                 </select>
                             </div>
                             <div class="mb-2">
-                                <select class="form-select" id="pobRefugio">
-                                    <option value="">Asignar refugio (opcional)...</option>
+                                <select class="form-select form-select-sm" id="famRefugio">
+                                    <option value="">Sin refugio</option>
                                 </select>
                             </div>
                             <div class="mb-2">
-                                <select class="form-select" id="pobNucleo">
-                                    <option value="">Asignar núcleo familiar (opcional)...</option>
+                                <select class="form-select form-select-sm" id="famEstacion">
+                                    <option value="">Sin estación</option>
                                 </select>
                             </div>
+                            <div class="mb-2"><textarea class="form-control form-control-sm" id="famObservaciones" placeholder="Observaciones"></textarea></div>
                             <button type="submit" class="btn btn-primary btn-sm">Guardar</button>
-                            <button type="button" class="btn btn-secondary btn-sm" onclick="cancelarEdicionPoblador()">Cancelar</button>
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="cancelarEdicionFamilia()">Cancelar</button>
                         </form>
                     </div>
 
@@ -284,45 +316,12 @@
                         </form>
                     </div>
 
-                    <!-- Núcleos familiares -->
-                    <div class="tab-pane fade" id="nucleos">
-                        <h6 class="mb-3">Núcleos Familiares</h6>
-                        <div class="mb-2">
-                            <select class="form-select" id="selectRefugioNucleo" onchange="cargarNucleos()">
-                                <option value="">Todos los refugios</option>
-                            </select>
-                        </div>
-                        <button class="btn btn-success btn-sm mb-3" onclick="nuevoNucleo()">
-                            <i class="fas fa-plus me-1"></i> Nuevo núcleo
-                        </button>
-                        <div id="listaNucleos"></div>
-                        <form id="formNucleo" style="display:none;" class="mt-3">
-                            <input type="hidden" id="nucId">
-                            <div class="mb-2"><input type="text" class="form-control" id="nucApellido" placeholder="Apellido de familia" required></div>
-                            <div class="mb-2">
-                                <select class="form-select" id="nucRefugio">
-                                    <option value="">Sin refugio asignado</option>
-                                </select>
-                            </div>
-                            <div class="mb-2">
-                                <select class="form-select" id="nucEstacion">
-                                    <option value="">Sin estación asignada</option>
-                                </select>
-                            </div>
-                            <div class="mb-2"><input type="text" class="form-control" id="nucDireccion" placeholder="Dirección de origen"></div>
-                            <div class="mb-2"><input type="date" class="form-control" id="nucFechaIngreso"></div>
-                            <div class="mb-2"><textarea class="form-control" id="nucObservaciones" placeholder="Observaciones"></textarea></div>
-                            <button type="submit" class="btn btn-primary btn-sm">Guardar</button>
-                            <button type="button" class="btn btn-secondary btn-sm" onclick="cancelarEdicionNucleo()">Cancelar</button>
-                        </form>
-                    </div>
-
                     <!-- Asistencias -->
                     <div class="tab-pane fade" id="asistencias">
                         <h6 class="mb-3">Asistencias Brindadas</h6>
                         <div class="mb-2">
-                            <select class="form-select" id="selectNucleoAsistencia" onchange="cargarAsistencias()">
-                                <option value="">Todos los núcleos</option>
+                            <select class="form-select" id="selectFamiliaAsistencia" onchange="cargarAsistencias()">
+                                <option value="">Todas las familias</option>
                             </select>
                         </div>
                         <button class="btn btn-success btn-sm mb-3" onclick="nuevaAsistencia()">
@@ -331,8 +330,8 @@
                         <div id="listaAsistencias"></div>
                         <form id="formAsistencia" style="display:none;" class="mt-3">
                             <div class="mb-2">
-                                <select class="form-select" id="asiNucleo" required>
-                                    <option value="">Seleccionar núcleo...</option>
+                                <select class="form-select" id="asiFamilia" required>
+                                    <option value="">Seleccionar familia...</option>
                                 </select>
                             </div>
                             <div class="mb-2">
@@ -355,10 +354,10 @@
                     <div class="tab-pane fade" id="vehiculos">
                         <h6 class="mb-3">Vehículos de Asistencia</h6>
                         <div class="mb-2">
-                            <input type="date" class="form-control" id="vehFiltroDesde" onchange="cargarVehiculos()">
+                            <input type="date" class="form-control form-control-sm" id="vehFiltroDesde" onchange="cargarVehiculos()">
                         </div>
                         <div class="mb-2">
-                            <input type="date" class="form-control" id="vehFiltroHasta" onchange="cargarVehiculos()">
+                            <input type="date" class="form-control form-control-sm" id="vehFiltroHasta" onchange="cargarVehiculos()">
                         </div>
                         <button class="btn btn-success btn-sm mb-3" onclick="nuevoVehiculo()">
                             <i class="fas fa-plus me-1"></i> Nuevo registro
@@ -455,7 +454,6 @@
     <script src="js/config.js"></script>
     <script src="js/api.js"></script>
     <script src="js/auth.js"></script>
-    <!--<script src="js/mapa.js"></script>-->
     <script src="js/dashboard.js"></script>
     <script src="js/graficos.js"></script>
 </body>
