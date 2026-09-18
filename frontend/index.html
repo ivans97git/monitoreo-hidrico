@@ -381,14 +381,45 @@
             </div>
 
             <div class="col-md-9 map-container">
-                <div id="map"></div>
-                <div class="map-legend">
-                    <h6>Leyenda</h6>
-                    <div><span class="badge bg-success">●</span> Normal</div>
-                    <div><span class="badge bg-warning">●</span> Alerta</div>
-                    <div><span class="badge bg-danger">●</span> Crítico</div>
-                </div>
+    <div id="map"></div>
+
+    <!-- Panel de capas -->
+        <div class="map-layers">
+            <h6><i class="fas fa-layer-group me-1"></i> Capas</h6>
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="capaEstaciones" checked onchange="toggleCapa('estaciones')">
+                <label class="form-check-label" for="capaEstaciones">
+                    <i class="fas fa-map-marker-alt text-primary"></i> Estaciones
+                </label>
             </div>
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="capaRefugios" checked onchange="toggleCapa('refugios')">
+                <label class="form-check-label" for="capaRefugios">
+                    <i class="fas fa-home text-success"></i> Refugios
+                </label>
+            </div>
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="capaFamilias" checked onchange="toggleCapa('familias')">
+                <label class="form-check-label" for="capaFamilias">
+                    <i class="fas fa-house-user text-warning"></i> Familias
+                </label>
+            </div>
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="capaAlertas" onchange="toggleCapa('alertas')">
+                <label class="form-check-label" for="capaAlertas">
+                    <i class="fas fa-exclamation-triangle text-danger"></i> Alertas
+                </label>
+            </div>
+        </div>
+
+        <!-- Leyenda -->
+        <div class="map-legend">
+            <h6>Leyenda</h6>
+            <div><span class="badge bg-success">●</span> Normal</div>
+            <div><span class="badge bg-warning">●</span> Alerta</div>
+            <div><span class="badge bg-danger">●</span> Crítico</div>
+        </div>
+    </div>
         </div>
     </div>
 
