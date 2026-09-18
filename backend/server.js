@@ -31,7 +31,7 @@ app.use(express.json({ limit: '10mb' }));
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/estaciones', require('./routes/estaciones'));
 app.use('/api/mediciones', require('./routes/mediciones'));
-app.use('/api/alertas', require('./routes/alertas'));
+app.use('/api/alertas', require('./services/alertas'));
 app.use('/api/refugios', require('./routes/refugios'));
 app.use('/api/familias', require('./routes/familias'));
 app.use('/api/personas', require('./routes/personas'));
