@@ -57,6 +57,8 @@ router.post('/', autenticarToken, autorizarRol('admin', 'editor'), async (req, r
             [estacion_id, req.usuario.id, valor, tipo_medicion, observaciones, fecha, porcentaje_reservorio || null]
         );
         const medicion = result.rows[0];
+        console.log('tipo:', typeof verificarYGenerarAlertaAutomatica);
+        console.log('valor:', verificarYGenerarAlertaAutomatica);
         const alerta = await verificarYGenerarAlertaAutomatica(medicion, estacion);
         res.status(201).json({
             ...medicion,
