@@ -7,6 +7,16 @@ let refugiosData = [];
 let familiasData = [];
 let familiaActual = null;
 
+// Capas del mapa
+let capasActivas = { estaciones: true, refugios: true, familias: true, alertas: false };
+let capaEstaciones = L.layerGroup();
+let capaRefugios = L.layerGroup();
+let capaFamilias = L.layerGroup();
+let capaAlertas = L.layerGroup();
+let refugiosMarkers = {};
+let familiasMarkers = {};
+let alertasMarkers = {};
+
 // ==================== MAPA ====================
 function inicializarMapa() {
     if (map) return;
@@ -15,13 +25,19 @@ function inicializarMapa() {
         attribution: CONFIG.MAPA.atribucion,
         maxZoom: 19
     }).addTo(map);
+
+    capaEstaciones.addTo(map);
+    capaRefugios.addTo(map);
+    capaFamilias.addTo(map);
+    // capaAlertas no se agrega por defecto
 }
 
 async function cargarEstaciones() {
     try {
         const estaciones = await api.getEstaciones();
         estacionesData = estaciones;
-        Object.values(marcadores).forEach(m => map.removeLayer(m));
+
+        capaEstaciones.clearLayers();
         marcadores = {};
 
         estaciones.forEach(estacion => {
@@ -35,7 +51,6 @@ async function cargarEstaciones() {
                 shadowSize: [41, 41]
             });
             const marcador = L.marker([estacion.latitud, estacion.longitud], { icon: icono })
-                .addTo(map)
                 .bindPopup(crearPopup(estacion))
                 .bindTooltip(crearTooltip(estacion), {
                     direction: 'top',
@@ -43,6 +58,7 @@ async function cargarEstaciones() {
                     opacity: 0.9,
                     sticky: true
                 });
+            capaEstaciones.addLayer(marcador);
             marcadores[estacion.id] = marcador;
         });
 
@@ -150,9 +166,167 @@ function actualizarSelectEstaciones() {
     });
 }
 
+// ==================== CAPAS DEL MAPA ====================
+
+async function cargarRefugiosEnMapa() {
+    try {
+        const refugios = await api.getRefugios();
+        capaRefugios.clearLayers();
+        refugiosMarkers = {};
+
+        refugios.forEach(r => {
+            if (!r.latitud || !r.longitud) return;
+
+            const ocupacion = r.porcentaje_ocupacion || 0;
+            const color = ocupacion >= 90 ? '#dc3545' : (ocupacion >= 70 ? '#ffc107' : '#28a745');
+
+            const icono = L.divIcon({
+                className: 'custom-marker-refugio',
+                html: `<div style="background:${color}; width:30px; height:30px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:white; font-weight:bold; border:2px solid white; box-shadow:0 2px 5px rgba(0,0,0,0.3);"><i class="fas fa-home" style="font-size:14px;"></i></div>`,
+                iconSize: [30, 30],
+                iconAnchor: [15, 30],
+                popupAnchor: [0, -30]
+            });
+
+            const marcador = L.marker([r.latitud, r.longitud], { icon: icono })
+                .bindPopup(`
+                    <div>
+                        <h6>${r.nombre}</h6>
+                        <p><strong>Dirección:</strong> ${r.direccion || 'N/A'}</p>
+                        <p><strong>Capacidad:</strong> ${r.capacidad_maxima}</p>
+                        <p><strong>Ocupación:</strong> ${r.ocupacion_actual} (${ocupacion}%)</p>
+                        <p><strong>Encargado:</strong> ${r.encargado || 'N/A'}</p>
+                        <p><strong>Teléfono:</strong> ${r.telefono || 'N/A'}</p>
+                    </div>
+                `)
+                .bindTooltip(`<b>${r.nombre}</b><br>Ocupación: ${ocupacion}%`, {
+                    direction: 'top',
+                    offset: [0, -30]
+                });
+
+            capaRefugios.addLayer(marcador);
+            refugiosMarkers[r.id] = marcador;
+        });
+    } catch (error) {
+        console.error('Error cargando refugios en mapa:', error);
+    }
+}
+
+async function cargarFamiliasEnMapa() {
+    try {
+        const familias = await api.getFamilias();
+        capaFamilias.clearLayers();
+        familiasMarkers = {};
+
+        familias.forEach(f => {
+            if (!f.latitud || !f.longitud) return;
+
+            const color = f.prioridad === 'ALTA' ? '#dc3545' : (f.prioridad === 'MEDIA' ? '#fd7e14' : '#0d6efd');
+
+            const icono = L.divIcon({
+                className: 'custom-marker-familia',
+                html: `<div style="background:${color}; width:26px; height:26px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:white; font-weight:bold; border:2px solid white; box-shadow:0 2px 5px rgba(0,0,0,0.3);"><i class="fas fa-users" style="font-size:12px;"></i></div>`,
+                iconSize: [26, 26],
+                iconAnchor: [13, 26],
+                popupAnchor: [0, -26]
+            });
+
+            const marcador = L.marker([f.latitud, f.longitud], { icon: icono })
+                .bindPopup(`
+                    <div>
+                        <h6>Familia ${f.responsable || ''}</h6>
+                        <p><strong>N.º:</strong> ${f.numero_familia || 'N/A'}</p>
+                        <p><strong>Ubicación:</strong> ${f.ubicacion || 'N/A'}</p>
+                        <p><strong>Personas:</strong> ${f.cantidad_integrantes || 0}</p>
+                        <p><strong>Prioridad:</strong> ${f.prioridad || 'N/A'}</p>
+                        <p><strong>Necesidad:</strong> ${f.necesidad || 'N/A'}</p>
+                        <p><strong>Estado:</strong> ${f.estado}</p>
+                        <button class="btn btn-sm btn-primary mt-1" onclick="verFamilia(${f.id})">Ver integrantes</button>
+                    </div>
+                `)
+                .bindTooltip(`<b>${f.responsable}</b><br>Prioridad: ${f.prioridad || 'N/A'} | Personas: ${f.cantidad_integrantes || 0}`, {
+                    direction: 'top',
+                    offset: [0, -26]
+                });
+
+            capaFamilias.addLayer(marcador);
+            familiasMarkers[f.id] = marcador;
+        });
+    } catch (error) {
+        console.error('Error cargando familias en mapa:', error);
+    }
+}
+
+async function cargarAlertasEnMapa() {
+    try {
+        const alertas = await api.getAlertas({ limite: 50 });
+        capaAlertas.clearLayers();
+        alertasMarkers = {};
+
+        for (const alerta of alertas) {
+            const estacion = estacionesData.find(e => e.id === alerta.estacion_id);
+            if (!estacion) continue;
+
+            const esCritica = alerta.tipo_alerta === 'CRÍTICO';
+            const color = esCritica ? '#dc3545' : '#fd7e14';
+
+            const icono = L.divIcon({
+                className: 'custom-marker-alerta',
+                html: `<div style="background:${color}; width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:white; font-weight:bold; border:3px solid white; box-shadow:0 2px 8px rgba(0,0,0,0.4); animation: pulse 2s infinite;"><i class="fas fa-exclamation-triangle" style="font-size:14px;"></i></div>`,
+                iconSize: [32, 32],
+                iconAnchor: [16, 32],
+                popupAnchor: [0, -32]
+            });
+
+            const marcador = L.marker([estacion.latitud, estacion.longitud], { icon: icono })
+                .bindPopup(`
+                    <div>
+                        <h6>${esCritica ? '🔴' : '🟠'} Alerta ${alerta.tipo_alerta}</h6>
+                        <p><strong>Estación:</strong> ${estacion.nombre}</p>
+                        <p><strong>Fecha:</strong> ${new Date(alerta.fecha_generacion || alerta.fecha_envio).toLocaleString()}</p>
+                        <p>${alerta.mensaje || ''}</p>
+                        ${alerta.archivo_excel ? `<a href="${CONFIG.API_URL.replace('/api','')}/api/descargar/${alerta.archivo_excel}" class="btn btn-sm btn-success mt-1" download>Descargar Excel</a>` : ''}
+                    </div>
+                `)
+                .bindTooltip(`<b>${esCritica ? 'CRÍTICO' : 'ALERTA'}</b><br>${estacion.nombre}`, {
+                    direction: 'top',
+                    offset: [0, -32]
+                });
+
+            capaAlertas.addLayer(marcador);
+            alertasMarkers[alerta.id] = marcador;
+        }
+    } catch (error) {
+        console.error('Error cargando alertas en mapa:', error);
+    }
+}
+
+function toggleCapa(nombre) {
+    const checkbox = document.getElementById(`capa${nombre.charAt(0).toUpperCase() + nombre.slice(1)}`);
+    const activa = checkbox ? checkbox.checked : false;
+    capasActivas[nombre] = activa;
+
+    let capa;
+    switch (nombre) {
+        case 'estaciones': capa = capaEstaciones; break;
+        case 'refugios': capa = capaRefugios; break;
+        case 'familias': capa = capaFamilias; break;
+        case 'alertas': capa = capaAlertas; break;
+    }
+
+    if (!capa) return;
+
+    if (activa) {
+        if (!map.hasLayer(capa)) capa.addTo(map);
+    } else {
+        if (map.hasLayer(capa)) map.removeLayer(capa);
+    }
+}
+
 window.inicializarMapa = inicializarMapa;
 window.cargarEstaciones = cargarEstaciones;
 window.actualizarSelectEstaciones = actualizarSelectEstaciones;
+window.toggleCapa = toggleCapa;
 
 // ==================== INICIALIZACIÓN ====================
 document.addEventListener('DOMContentLoaded', async () => {
@@ -170,12 +344,18 @@ document.addEventListener('DOMContentLoaded', async () => {
         await cargarEstaciones();
         inicializarGraficos();
         await cargarAlertas();
-        inicializarFormularios();
-        await cargarEstacionesAdmin();
         await cargarRefugios();
         await cargarFamilias();
         await cargarAsistencias();
         await cargarVehiculos();
+
+        // Cargar capas del mapa
+        await cargarRefugiosEnMapa();
+        await cargarFamiliasEnMapa();
+        await cargarAlertasEnMapa();
+
+        inicializarFormularios();
+        await cargarEstacionesAdmin();
 
         document.getElementById('loadingScreen').style.display = 'none';
     } catch (error) {
@@ -227,6 +407,9 @@ function inicializarFormularios() {
 
     const formVehiculo = document.getElementById('formVehiculo');
     if (formVehiculo) formVehiculo.addEventListener('submit', guardarVehiculo);
+
+    const formPersonaFamilia = document.getElementById('formPersonaFamilia');
+    if (formPersonaFamilia) formPersonaFamilia.addEventListener('submit', guardarPersonaFamilia);
 }
 
 // ==================== MEDICIONES ====================
@@ -491,52 +674,56 @@ async function cargarFamilias() {
         }
 
         const lista = document.getElementById('listaFamilias');
-        if (!lista) return;
-        if (!familiasData.length) {
-            lista.innerHTML = '<p class="text-muted">No hay familias registradas</p>';
-            return;
+        if (lista) {
+            if (!familiasData.length) {
+                lista.innerHTML = '<p class="text-muted">No hay familias registradas</p>';
+            } else {
+                lista.innerHTML = `
+                    <div class="table-responsive">
+                        <table class="table table-sm table-striped">
+                            <thead>
+                                <tr>
+                                    <th>N.º / Resp.</th>
+                                    <th>Ubicación</th>
+                                    <th>Pers.</th>
+                                    <th>Prioridad</th>
+                                    <th>Transporte</th>
+                                    <th>Animales</th>
+                                    <th>Destino</th>
+                                    <th>Estado</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${familiasData.map(f => `
+                                    <tr>
+                                        <td><strong>${f.numero_familia || '-'}</strong><br><small>${f.responsable || ''}</small></td>
+                                        <td>${f.ubicacion || '-'}</td>
+                                        <td>${f.cantidad_integrantes || 0}</td>
+                                        <td>
+                                            <span class="badge ${f.prioridad === 'ALTA' ? 'bg-danger' : (f.prioridad === 'MEDIA' ? 'bg-warning' : 'bg-secondary')}">${f.prioridad || '-'}</span><br>
+                                            <small>${f.necesidad || ''}</small>
+                                        </td>
+                                        <td>${f.transporte ? '<i class="fas fa-check text-success"></i>' : '<i class="fas fa-times text-muted"></i>'}${f.tipo_transporte ? `<br><small>${f.tipo_transporte}</small>` : ''}</td>
+                                        <td>${f.animales ? '<i class="fas fa-check text-success"></i>' : '<i class="fas fa-times text-muted"></i>'}${f.detalle_animales ? `<br><small>${f.detalle_animales}</small>` : ''}</td>
+                                        <td>${f.destino || '-'}</td>
+                                        <td><span class="badge ${f.estado === 'CERRADO' ? 'bg-success' : (f.estado === 'EVACUADO' ? 'bg-info' : (f.estado === 'ASISTIDO' ? 'bg-primary' : 'bg-secondary'))}">${f.estado || 'PENDIENTE'}</span></td>
+                                        <td>
+                                            <button class="btn btn-sm btn-outline-info" onclick="verFamilia(${f.id})" title="Ver integrantes"><i class="fas fa-users"></i></button>
+                                            <button class="btn btn-sm btn-outline-primary" onclick="editarFamilia(${f.id})"><i class="fas fa-edit"></i></button>
+                                            <button class="btn btn-sm btn-outline-danger" onclick="eliminarFamilia(${f.id})"><i class="fas fa-trash"></i></button>
+                                        </td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+            }
         }
-        lista.innerHTML = `
-            <div class="table-responsive">
-                <table class="table table-sm table-striped">
-                    <thead>
-                        <tr>
-                            <th>N.º / Resp.</th>
-                            <th>Ubicación</th>
-                            <th>Pers.</th>
-                            <th>Prioridad</th>
-                            <th>Transporte</th>
-                            <th>Animales</th>
-                            <th>Destino</th>
-                            <th>Estado</th>
-                            <th>Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${familiasData.map(f => `
-                            <tr>
-                                <td><strong>${f.numero_familia || '-'}</strong><br><small>${f.responsable || ''}</small></td>
-                                <td>${f.ubicacion || '-'}</td>
-                                <td>${f.cantidad_integrantes || 0}</td>
-                                <td>
-                                    <span class="badge ${f.prioridad === 'ALTA' ? 'bg-danger' : (f.prioridad === 'MEDIA' ? 'bg-warning' : 'bg-secondary')}">${f.prioridad || '-'}</span><br>
-                                    <small>${f.necesidad || ''}</small>
-                                </td>
-                                <td>${f.transporte ? '<i class="fas fa-check text-success"></i>' : '<i class="fas fa-times text-muted"></i>'}${f.tipo_transporte ? `<br><small>${f.tipo_transporte}</small>` : ''}</td>
-                                <td>${f.animales ? '<i class="fas fa-check text-success"></i>' : '<i class="fas fa-times text-muted"></i>'}${f.detalle_animales ? `<br><small>${f.detalle_animales}</small>` : ''}</td>
-                                <td>${f.destino || '-'}</td>
-                                <td><span class="badge ${f.estado === 'CERRADO' ? 'bg-success' : (f.estado === 'EVACUADO' ? 'bg-info' : (f.estado === 'ASISTIDO' ? 'bg-primary' : 'bg-secondary'))}">${f.estado || 'PENDIENTE'}</span></td>
-                                <td>
-                                    <button class="btn btn-sm btn-outline-info" onclick="verFamilia(${f.id})" title="Ver integrantes"><i class="fas fa-users"></i></button>
-                                    <button class="btn btn-sm btn-outline-primary" onclick="editarFamilia(${f.id})"><i class="fas fa-edit"></i></button>
-                                    <button class="btn btn-sm btn-outline-danger" onclick="eliminarFamilia(${f.id})"><i class="fas fa-trash"></i></button>
-                                </td>
-                            </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
-            </div>
-        `;
+
+        // Refrescar capa del mapa
+        await cargarFamiliasEnMapa();
     } catch (error) {
         console.error('Error cargando familias:', error);
     }
@@ -562,6 +749,8 @@ async function guardarFamilia(e) {
         responsable: document.getElementById('famResponsable').value,
         telefono: document.getElementById('famTelefono').value,
         ubicacion: document.getElementById('famUbicacion').value,
+        latitud: parseFloat(document.getElementById('famLatitud').value) || null,
+        longitud: parseFloat(document.getElementById('famLongitud').value) || null,
         cantidad_personas: parseInt(document.getElementById('famCantidad').value) || 0,
         prioridad: document.getElementById('famPrioridad').value || null,
         necesidad: document.getElementById('famNecesidad').value,
@@ -594,6 +783,8 @@ async function editarFamilia(id) {
     document.getElementById('famResponsable').value = f.responsable || '';
     document.getElementById('famTelefono').value = f.telefono || '';
     document.getElementById('famUbicacion').value = f.ubicacion || '';
+    document.getElementById('famLatitud').value = f.latitud || '';
+    document.getElementById('famLongitud').value = f.longitud || '';
     document.getElementById('famCantidad').value = f.cantidad_personas || '';
     document.getElementById('famPrioridad').value = f.prioridad || '';
     document.getElementById('famNecesidad').value = f.necesidad || '';
@@ -624,7 +815,6 @@ async function verFamilia(id) {
         const data = await api.getFamilia(id);
         familiaActual = data;
 
-        // Si existe un modal, mostrarlo
         const modalEl = document.getElementById('modalFamilia');
         if (modalEl) {
             document.getElementById('modalFamTitulo').textContent = `Familia ${data.responsable || ''}`;
@@ -648,7 +838,6 @@ async function verFamilia(id) {
                     </div>
                 `).join('');
             }
-            // Limpiar formulario de persona y preparar
             const formPer = document.getElementById('formPersonaFamilia');
             if (formPer) {
                 formPer.reset();
@@ -656,7 +845,6 @@ async function verFamilia(id) {
             }
             new bootstrap.Modal(modalEl).show();
         } else {
-            // Fallback a alert
             let html = `Familia ${data.responsable || ''}\nUbicación: ${data.ubicacion || '-'}\n\nIntegrantes:\n`;
             if (!data.personas || !data.personas.length) {
                 html += 'Sin integrantes cargados\n';
@@ -750,6 +938,9 @@ async function cargarRefugios() {
             });
             if ([...sel.options].some(o => o.value === current)) sel.value = current;
         });
+
+        // Refrescar capa del mapa
+        await cargarRefugiosEnMapa();
     } catch (error) {
         console.error('Error cargando refugios:', error);
     }
@@ -846,7 +1037,7 @@ async function cargarAsistencias() {
             <div class="item-listado">
                 <div class="d-flex justify-content-between">
                     <div>
-                        <strong>${a.nucleo_apellido || a.familia_responsable || 'N/A'}</strong> - <span class="badge bg-info">${a.tipo}</span><br>
+                        <strong>${a.nucleo_apellido || 'N/A'}</strong> - <span class="badge bg-info">${a.tipo}</span><br>
                         <small>${new Date(a.fecha).toLocaleString()}</small><br>
                         <small>${a.descripcion || ''}</small>
                     </div>
@@ -862,7 +1053,6 @@ async function cargarAsistencias() {
 function nuevaAsistencia() {
     document.getElementById('formAsistencia').reset();
     document.getElementById('formAsistencia').style.display = 'block';
-    // Llenar select de familias
     const sel = document.getElementById('asiFamilia');
     sel.innerHTML = '<option value="">Seleccionar familia...</option>';
     familiasData.forEach(f => {
@@ -1004,20 +1194,23 @@ async function cargarAlertas() {
         const lista = document.getElementById('listaAlertas');
         if (!alertas.length) {
             lista.innerHTML = '<p class="text-muted">No hay alertas registradas</p>';
-            return;
-        }
-        lista.innerHTML = alertas.map(alerta => `
-            <div class="list-group-item alerta-item ${alerta.tipo_alerta === 'CRÍTICO' ? 'alerta-critica' : ''}">
-                <div class="d-flex justify-content-between">
-                    <strong>${alerta.nombre_estacion || 'Estación ' + alerta.estacion_id}</strong>
-                    <span class="badge ${alerta.tipo_alerta === 'CRÍTICO' ? 'bg-danger' : 'bg-warning'}">${alerta.tipo_alerta}</span>
+        } else {
+            lista.innerHTML = alertas.map(alerta => `
+                <div class="list-group-item alerta-item ${alerta.tipo_alerta === 'CRÍTICO' ? 'alerta-critica' : ''}">
+                    <div class="d-flex justify-content-between">
+                        <strong>${alerta.nombre_estacion || 'Estación ' + alerta.estacion_id}</strong>
+                        <span class="badge ${alerta.tipo_alerta === 'CRÍTICO' ? 'bg-danger' : 'bg-warning'}">${alerta.tipo_alerta}</span>
+                    </div>
+                    <small>${new Date(alerta.fecha_generacion || alerta.fecha_envio).toLocaleString()}</small>
+                    <p class="mb-0">${alerta.mensaje || ''}</p>
+                    ${alerta.archivo_excel ? `<a href="${CONFIG.API_URL.replace('/api','')}/api/descargar/${alerta.archivo_excel}" class="btn btn-sm btn-outline-success mt-1" download>Descargar Excel</a>` : ''}
+                    ${usuarioActual && usuarioActual.rol === 'admin' ? `<button class="btn btn-sm btn-outline-danger mt-1" onclick="eliminarAlerta(${alerta.id})"><i class="fas fa-trash"></i></button>` : ''}
                 </div>
-                <small>${new Date(alerta.fecha_generacion || alerta.fecha_envio).toLocaleString()}</small>
-                <p class="mb-0">${alerta.mensaje || ''}</p>
-                ${alerta.archivo_excel ? `<a href="${CONFIG.API_URL.replace('/api','')}/api/descargar/${alerta.archivo_excel}" class="btn btn-sm btn-outline-success mt-1" download>Descargar Excel</a>` : ''}
-                ${usuarioActual && usuarioActual.rol === 'admin' ? `<button class="btn btn-sm btn-outline-danger mt-1" onclick="eliminarAlerta(${alerta.id})"><i class="fas fa-trash"></i></button>` : ''}
-            </div>
-        `).join('');
+            `).join('');
+        }
+
+        // Refrescar capa del mapa
+        await cargarAlertasEnMapa();
     } catch (error) {
         console.error('Error cargando alertas:', error);
     }
@@ -1087,3 +1280,16 @@ window.guardarVehiculo = guardarVehiculo;
 window.eliminarVehiculo = eliminarVehiculo;
 window.eliminarAlerta = eliminarAlerta;
 window.generarAlertaManual = generarAlertaManual;
+window.nuevaEstacion = nuevaEstacion;
+window.cancelarEdicionEstacion = cancelarEdicionEstacion;
+window.guardarEstacion = guardarEstacion;
+window.editarEstacion = editarEstacion;
+window.eliminarEstacion = eliminarEstacion;
+window.abrirModalEditar = abrirModalEditar;
+window.guardarEdicionMedicion = guardarEdicionMedicion;
+window.eliminarMedicion = eliminarMedicion;
+window.nuevoRefugio = nuevoRefugio;
+window.cancelarEdicionRefugio = cancelarEdicionRefugio;
+window.guardarRefugio = guardarRefugio;
+window.editarRefugio = editarRefugio;
+window.eliminarRefugio = eliminarRefugio;
