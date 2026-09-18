@@ -287,6 +287,12 @@
                                     <option value="">Sin estación</option>
                                 </select>
                             </div>
+                            <div class="mb-2">
+                                <input type="number" step="any" class="form-control form-control-sm" id="famLatitud" placeholder="Latitud (para el mapa)">
+                            </div>
+                            <div class="mb-2">
+                                <input type="number" step="any" class="form-control form-control-sm" id="famLongitud" placeholder="Longitud (para el mapa)">
+                            </div>
                             <div class="mb-2"><textarea class="form-control form-control-sm" id="famObservaciones" placeholder="Observaciones"></textarea></div>
                             <button type="submit" class="btn btn-primary btn-sm">Guardar</button>
                             <button type="button" class="btn btn-secondary btn-sm" onclick="cancelarEdicionFamilia()">Cancelar</button>
@@ -381,45 +387,45 @@
             </div>
 
             <div class="col-md-9 map-container">
-    <div id="map"></div>
+                <div id="map"></div>
 
-    <!-- Panel de capas -->
-        <div class="map-layers">
-            <h6><i class="fas fa-layer-group me-1"></i> Capas</h6>
-            <div class="form-check">
-                <input class="form-check-input" type="checkbox" id="capaEstaciones" checked onchange="toggleCapa('estaciones')">
-                <label class="form-check-label" for="capaEstaciones">
-                    <i class="fas fa-map-marker-alt text-primary"></i> Estaciones
-                </label>
-            </div>
-            <div class="form-check">
-                <input class="form-check-input" type="checkbox" id="capaRefugios" checked onchange="toggleCapa('refugios')">
-                <label class="form-check-label" for="capaRefugios">
-                    <i class="fas fa-home text-success"></i> Refugios
-                </label>
-            </div>
-            <div class="form-check">
-                <input class="form-check-input" type="checkbox" id="capaFamilias" checked onchange="toggleCapa('familias')">
-                <label class="form-check-label" for="capaFamilias">
-                    <i class="fas fa-house-user text-warning"></i> Familias
-                </label>
-            </div>
-            <div class="form-check">
-                <input class="form-check-input" type="checkbox" id="capaAlertas" onchange="toggleCapa('alertas')">
-                <label class="form-check-label" for="capaAlertas">
-                    <i class="fas fa-exclamation-triangle text-danger"></i> Alertas
-                </label>
-            </div>
-        </div>
+                <!-- Panel de capas -->
+                <div class="map-layers">
+                    <h6><i class="fas fa-layer-group me-1"></i> Capas</h6>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="capaEstaciones" checked onchange="toggleCapa('estaciones')">
+                        <label class="form-check-label" for="capaEstaciones">
+                            <i class="fas fa-map-marker-alt text-primary"></i> Estaciones
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="capaRefugios" checked onchange="toggleCapa('refugios')">
+                        <label class="form-check-label" for="capaRefugios">
+                            <i class="fas fa-home text-success"></i> Refugios
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="capaFamilias" checked onchange="toggleCapa('familias')">
+                        <label class="form-check-label" for="capaFamilias">
+                            <i class="fas fa-house-user text-warning"></i> Familias
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="capaAlertas" onchange="toggleCapa('alertas')">
+                        <label class="form-check-label" for="capaAlertas">
+                            <i class="fas fa-exclamation-triangle text-danger"></i> Alertas
+                        </label>
+                    </div>
+                </div>
 
-        <!-- Leyenda -->
-        <div class="map-legend">
-            <h6>Leyenda</h6>
-            <div><span class="badge bg-success">●</span> Normal</div>
-            <div><span class="badge bg-warning">●</span> Alerta</div>
-            <div><span class="badge bg-danger">●</span> Crítico</div>
-        </div>
-    </div>
+                <!-- Leyenda -->
+                <div class="map-legend">
+                    <h6>Leyenda</h6>
+                    <div><span class="badge bg-success">●</span> Normal</div>
+                    <div><span class="badge bg-warning">●</span> Alerta</div>
+                    <div><span class="badge bg-danger">●</span> Crítico</div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -477,7 +483,7 @@
             </div>
         </div>
     </div>
-    
+
     <!-- Modal familia (integrantes) -->
     <div class="modal fade" id="modalFamilia" tabindex="-1">
         <div class="modal-dialog modal-lg">
@@ -516,7 +522,7 @@
                 </div>
             </div>
         </div>
-    </div>    
+    </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
