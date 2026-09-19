@@ -4,7 +4,7 @@ const { autenticarToken, autorizarRol } = require('../middleware/auth');
 
 const router = express.Router();
 
-// GET /api/familias - resumen operativo, una fila por familia
+// GET /api/familias
 router.get('/', autenticarToken, async (req, res) => {
     try {
         const { refugio_id, estacion_id, estado } = req.query;
