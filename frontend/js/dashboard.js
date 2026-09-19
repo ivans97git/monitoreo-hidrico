@@ -29,7 +29,6 @@ function inicializarMapa() {
     capaEstaciones.addTo(map);
     capaRefugios.addTo(map);
     capaFamilias.addTo(map);
-    // capaAlertas no se agrega por defecto
 }
 
 async function cargarEstaciones() {
@@ -285,7 +284,6 @@ async function cargarAlertasEnMapa() {
                         <p><strong>Estación:</strong> ${estacion.nombre}</p>
                         <p><strong>Fecha:</strong> ${new Date(alerta.fecha_generacion || alerta.fecha_envio).toLocaleString()}</p>
                         <p>${alerta.mensaje || ''}</p>
-                        ${alerta.archivo_excel ? `<a href="${CONFIG.API_URL.replace('/api','')}/api/descargar/${alerta.archivo_excel}" class="btn btn-sm btn-success mt-1" download>Descargar Excel</a>` : ''}
                     </div>
                 `)
                 .bindTooltip(`<b>${esCritica ? 'CRÍTICO' : 'ALERTA'}</b><br>${estacion.nombre}`, {
@@ -349,7 +347,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         await cargarAsistencias();
         await cargarVehiculos();
 
-        // Cargar capas del mapa
         await cargarRefugiosEnMapa();
         await cargarFamiliasEnMapa();
         await cargarAlertasEnMapa();
@@ -438,23 +435,43 @@ async function registrarMedicion(e) {
         });
         let mensaje = '✅ Medición registrada exitosamente';
 
-        if (resultado.alerta_generada && resultado.archivo_excel) {
-            const enlace = `${CONFIG.API_URL.replace('/api','')}/api/descargar/${resultado.archivo_excel}`;
-            const modal = document.getElementById('modalAlerta');
-            const btnDescargar = document.getElementById('btnDescargarModal');
-            const btnCancelar = document.getElementById('btnCancelarModal');
+        if (resultado.alerta_generada && resultado.archivo_base64) {
+            const blob = base64ToBlob(
+                resultado.archivo_base64,
+                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            );
+            const enlace = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = enlace;
+            a.download = resultado.archivo_excel || 'alerta.xlsx';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(enlace);
 
-            if (modal && btnDescargar && btnCancelar) {
-                btnDescargar.onclick = () => { window.location.href = enlace; modal.style.display = 'none'; };
-                btnCancelar.onclick = () => { modal.style.display = 'none'; };
+            const modal = document.getElementById('modalAlerta');
+            if (modal) {
+                const btnCancelar = document.getElementById('btnCancelarModal');
+                const btnDescargar = document.getElementById('btnDescargarModal');
+                if (btnCancelar) btnCancelar.onclick = () => { modal.style.display = 'none'; };
+                if (btnDescargar) {
+                    btnDescargar.onclick = () => {
+                        const enlace2 = URL.createObjectURL(blob);
+                        const a2 = document.createElement('a');
+                        a2.href = enlace2;
+                        a2.download = resultado.archivo_excel || 'alerta.xlsx';
+                        document.body.appendChild(a2);
+                        a2.click();
+                        document.body.removeChild(a2);
+                        URL.revokeObjectURL(enlace2);
+                        modal.style.display = 'none';
+                    };
+                }
                 modal.onclick = (e) => { if (e.target === modal) modal.style.display = 'none'; };
                 modal.style.display = 'flex';
-            } else {
-                if (confirm('⚠️ Aviso por WhatsApp a pobladores cercanos. ¿Descargar Excel?')) {
-                    window.location.href = enlace;
-                }
             }
-            mensaje += `<br><a href="${enlace}" class="btn btn-sm btn-success mt-2" download>Descargar listado</a>`;
+
+            mensaje += '<br>✅ Excel descargado automáticamente.';
         }
 
         mostrarMensaje(mensaje, 'success');
@@ -659,7 +676,6 @@ async function cargarFamilias() {
         familiasData = await api.getFamilias(filtros);
         if (prioridad) familiasData = familiasData.filter(f => f.prioridad === prioridad);
 
-        // Actualizar select de familias en asistencias
         const selAsi = document.getElementById('selectFamiliaAsistencia');
         if (selAsi) {
             const current = selAsi.value;
@@ -722,7 +738,6 @@ async function cargarFamilias() {
             }
         }
 
-        // Refrescar capa del mapa
         await cargarFamiliasEnMapa();
     } catch (error) {
         console.error('Error cargando familias:', error);
@@ -939,7 +954,6 @@ async function cargarRefugios() {
             if ([...sel.options].some(o => o.value === current)) sel.value = current;
         });
 
-        // Refrescar capa del mapa
         await cargarRefugiosEnMapa();
     } catch (error) {
         console.error('Error cargando refugios:', error);
@@ -1203,13 +1217,11 @@ async function cargarAlertas() {
                     </div>
                     <small>${new Date(alerta.fecha_generacion || alerta.fecha_envio).toLocaleString()}</small>
                     <p class="mb-0">${alerta.mensaje || ''}</p>
-                    ${alerta.archivo_excel ? `<a href="${CONFIG.API_URL.replace('/api','')}/api/descargar/${alerta.archivo_excel}" class="btn btn-sm btn-outline-success mt-1" download>Descargar Excel</a>` : ''}
                     ${usuarioActual && usuarioActual.rol === 'admin' ? `<button class="btn btn-sm btn-outline-danger mt-1" onclick="eliminarAlerta(${alerta.id})"><i class="fas fa-trash"></i></button>` : ''}
                 </div>
             `).join('');
         }
 
-        // Refrescar capa del mapa
         await cargarAlertasEnMapa();
     } catch (error) {
         console.error('Error cargando alertas:', error);
@@ -1221,9 +1233,19 @@ async function generarAlertaManual() {
     const tipo_alerta = document.getElementById('selectTipoAlertaManual').value;
     const mensaje = document.getElementById('mensajeAlertaManual').value;
     if (!estacion_id) { alert('Seleccione una estación'); return; }
+
     try {
-        const data = await api.generarAlertaManual({ estacion_id, tipo_alerta, mensaje });
-        alert(`Alerta generada. Archivo: ${data.archivo}`);
+        const { blob, filename } = await api.generarAlertaManual({ estacion_id, tipo_alerta, mensaje });
+        const enlace = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = enlace;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(enlace);
+
+        alert('✅ Alerta generada y Excel descargado');
         await cargarAlertas();
     } catch (error) {
         alert('Error: ' + error.message);
@@ -1248,6 +1270,16 @@ function mostrarMensaje(mensaje, tipo) {
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>`;
     setTimeout(() => div.innerHTML = '', 5000);
+}
+
+function base64ToBlob(base64, contentType) {
+    const byteCharacters = atob(base64);
+    const byteNumbers = new Array(byteCharacters.length);
+    for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+    }
+    const byteArray = new Uint8Array(byteNumbers);
+    return new Blob([byteArray], { type: contentType });
 }
 
 document.addEventListener('shown.bs.tab', (e) => {
