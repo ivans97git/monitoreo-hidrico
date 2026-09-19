@@ -30,7 +30,7 @@ router.get('/', autenticarToken, async (req, res) => {
     }
 });
 
-// POST /api/alertas/generar - Alerta manual
+// POST /api/alertas/generar - Genera y descarga directamente
 router.post('/generar', autenticarToken, autorizarRol('admin', 'editor'), async (req, res) => {
     try {
         const { estacion_id, tipo_alerta, mensaje } = req.body;
@@ -42,7 +42,6 @@ router.post('/generar', autenticarToken, autorizarRol('admin', 'editor'), async 
         if (estRes.rows.length === 0) return res.status(404).json({ error: 'Estación no encontrada' });
         const estacion = estRes.rows[0];
 
-        // Buscar FAMILIAS asociadas a la estación
         const famRes = await query(
             `SELECT f.*,
                 (SELECT COUNT(*) FROM personas p WHERE p.familia_id = f.id AND p.activo = true) as cantidad_integrantes
@@ -55,23 +54,22 @@ router.post('/generar', autenticarToken, autorizarRol('admin', 'editor'), async 
             return res.status(400).json({ error: 'No hay familias asociadas a esta estación' });
         }
 
-        const resultado = await excelService.generarExcelFamilias(
+        const { buffer, filename } = await excelService.generarExcelFamiliasBuffer(
             famRes.rows, estacion, tipo, null, new Date()
         );
 
         const mensajeFinal = mensaje || `Alerta manual ${tipo}`;
-
         await query(
             `INSERT INTO alertas (estacion_id, tipo_alerta, archivo_excel, mensaje)
              VALUES ($1, $2, $3, $4)`,
-            [estacion.id, tipo, resultado.filename, mensajeFinal]
+            [estacion.id, tipo, filename, mensajeFinal]
         );
 
-        res.json({
-            mensaje: 'Alerta manual generada exitosamente',
-            archivo: resultado.filename,
-            tipo_alerta: tipo
-        });
+        // Enviar archivo directamente
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+        res.send(buffer);
+
     } catch (error) {
         console.error('Error generando alerta manual:', error);
         res.status(500).json({ error: 'Error al generar alerta manual' });
