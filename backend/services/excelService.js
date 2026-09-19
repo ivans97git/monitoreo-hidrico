@@ -45,7 +45,6 @@ async function generarExcelFamiliasBuffer(familias, estacion, tipoAlerta, valor,
     detailCell.value = `Fecha: ${fechaTexto} | Valor: ${valorTexto}`;
     detailCell.font = { italic: true };
 
-    // Anchos
     worksheet.getColumn(1).width = 12;
     worksheet.getColumn(2).width = 20;
     worksheet.getColumn(3).width = 30;
