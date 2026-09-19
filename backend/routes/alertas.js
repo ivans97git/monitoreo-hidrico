@@ -30,7 +30,7 @@ router.get('/', autenticarToken, async (req, res) => {
     }
 });
 
-// POST /api/alertas/generar
+// POST /api/alertas/generar - Alerta manual
 router.post('/generar', autenticarToken, autorizarRol('admin', 'editor'), async (req, res) => {
     try {
         const { estacion_id, tipo_alerta, mensaje } = req.body;
