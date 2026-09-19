@@ -16,7 +16,6 @@ class API {
             ...(token && { 'Authorization': `Bearer ${token}` }),
             ...options.headers
         };
-
         try {
             const response = await fetch(url, { ...options, headers });
             if (response.status === 401 && !endpoint.includes('/auth/login')) {
@@ -88,7 +87,7 @@ class API {
         return await this.request(`/alertas?${params}`);
     }
 
-    // Alerta manual: recibe blob (archivo Excel)
+    // Alerta manual: recibe blob (Excel)
     async generarAlertaManual(data) {
         const url = `${this.baseURL}/alertas/generar`;
         const token = this.getToken();
