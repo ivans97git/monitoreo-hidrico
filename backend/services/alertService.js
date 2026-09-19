@@ -3,9 +3,8 @@ const excelService = require('./excelService');
 
 async function verificarYGenerarAlertaAutomatica(medicion, estacion) {
     try {
-        // Solo aplica a nivel de río
         if (medicion.tipo_medicion !== 'nivel_rio') {
-            return { alertaGenerada: false, archivo: null };
+            return { alertaGenerada: false, buffer: null, filename: null };
         }
 
         const valor = parseFloat(medicion.valor);
@@ -13,20 +12,11 @@ async function verificarYGenerarAlertaAutomatica(medicion, estacion) {
         const nivelAlerta = parseFloat(estacion.nivel_alerta);
 
         let tipoAlerta = null;
-        if (!isNaN(nivelCritico) && valor >= nivelCritico) {
-            tipoAlerta = 'CRÍTICO';
-        } else if (!isNaN(nivelAlerta) && valor >= nivelAlerta) {
-            tipoAlerta = 'ALERTA';
-        }
+        if (!isNaN(nivelCritico) && valor >= nivelCritico) tipoAlerta = 'CRÍTICO';
+        else if (!isNaN(nivelAlerta) && valor >= nivelAlerta) tipoAlerta = 'ALERTA';
 
-        if (!tipoAlerta) {
-            console.log('ℹ️ Nivel dentro de parámetros normales.');
-            return { alertaGenerada: false, archivo: null };
-        }
+        if (!tipoAlerta) return { alertaGenerada: false, buffer: null, filename: null };
 
-        console.log(`⚠️ Alerta ${tipoAlerta} detectada para estación ${estacion.nombre}`);
-
-        // Buscar FAMILIAS asociadas a la estación
         const familiasRes = await query(
             `SELECT f.*,
                 (SELECT COUNT(*) FROM personas p WHERE p.familia_id = f.id AND p.activo = true) as cantidad_integrantes
@@ -36,29 +26,27 @@ async function verificarYGenerarAlertaAutomatica(medicion, estacion) {
             [estacion.id]
         );
         const familias = familiasRes.rows;
-
         if (familias.length === 0) {
             console.log('ℹ️ No hay familias asociadas a esta estación.');
-            return { alertaGenerada: false, archivo: null };
+            return { alertaGenerada: false, buffer: null, filename: null };
         }
 
-        // Generar Excel con familias afectadas
-        const resultado = await excelService.generarExcelFamilias(
+        const { buffer, filename } = await excelService.generarExcelFamiliasBuffer(
             familias, estacion, tipoAlerta, valor, medicion.fecha_hora
         );
 
-        // Guardar alerta
         await query(
             `INSERT INTO alertas (estacion_id, medicion_id, tipo_alerta, archivo_excel, mensaje)
              VALUES ($1, $2, $3, $4, $5)`,
-            [estacion.id, medicion.id, tipoAlerta, resultado.filename, `Alerta automática ${tipoAlerta}`]
+            [estacion.id, medicion.id, tipoAlerta, filename, `Alerta automática ${tipoAlerta}`]
         );
 
-        console.log(`✅ Excel generado y alerta registrada: ${resultado.filename}`);
-        return { alertaGenerada: true, archivo: resultado.filename };
+        // Convertir buffer a base64 para enviar en JSON
+        const bufferBase64 = buffer.toString('base64');
+        return { alertaGenerada: true, buffer: bufferBase64, filename };
     } catch (error) {
-        console.error('❌ Error en alerta automática:', error);
-        return { alertaGenerada: false, archivo: null };
+        console.error('Error en alerta automática:', error);
+        return { alertaGenerada: false, buffer: null, filename: null };
     }
 }
 
