@@ -1,10 +1,11 @@
 const express = require('express');
 const { query } = require('../config/database');
 const { autenticarToken, autorizarRol } = require('../middleware/auth');
-const { verificarYGenerarAlerta } = require('../services/alertService');
+const { verificarYGenerarAlertaAutomatica } = require('../services/alertService');
 
 const router = express.Router();
 
+// GET /api/mediciones
 router.get('/', autenticarToken, async (req, res) => {
     try {
         const { estacion_id, tipo, desde, hasta, limite = 100 } = req.query;
@@ -31,6 +32,7 @@ router.get('/', autenticarToken, async (req, res) => {
     }
 });
 
+// GET /api/mediciones/:id
 router.get('/:id', autenticarToken, async (req, res) => {
     try {
         const result = await query('SELECT * FROM mediciones WHERE id = $1', [req.params.id]);
@@ -41,6 +43,7 @@ router.get('/:id', autenticarToken, async (req, res) => {
     }
 });
 
+// POST /api/mediciones
 router.post('/', autenticarToken, autorizarRol('admin', 'editor'), async (req, res) => {
     try {
         const { estacion_id, valor, tipo_medicion, observaciones, fecha_hora, porcentaje_reservorio } = req.body;
@@ -51,17 +54,21 @@ router.post('/', autenticarToken, autorizarRol('admin', 'editor'), async (req, r
         if (estacionRes.rows.length === 0) return res.status(404).json({ error: 'Estación no encontrada' });
         const estacion = estacionRes.rows[0];
         const fecha = fecha_hora || new Date();
+
         const result = await query(
             `INSERT INTO mediciones (estacion_id, usuario_id, valor, tipo_medicion, observaciones, fecha_hora, porcentaje_reservorio)
              VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
             [estacion_id, req.usuario.id, valor, tipo_medicion, observaciones, fecha, porcentaje_reservorio || null]
         );
         const medicion = result.rows[0];
-        const alerta = await verificarYGenerarAlerta(medicion, estacion);
+
+        const alerta = await verificarYGenerarAlertaAutomatica(medicion, estacion);
+
         res.status(201).json({
             ...medicion,
             alerta_generada: alerta.alertaGenerada,
-            archivo_excel: alerta.archivo || null
+            archivo_excel: alerta.filename || null,
+            archivo_base64: alerta.buffer || null
         });
     } catch (error) {
         console.error('Error registrando medición:', error);
@@ -69,6 +76,7 @@ router.post('/', autenticarToken, autorizarRol('admin', 'editor'), async (req, r
     }
 });
 
+// PUT /api/mediciones/:id
 router.put('/:id', autenticarToken, autorizarRol('admin', 'editor'), async (req, res) => {
     try {
         const { valor, tipo_medicion, observaciones, fecha_hora, estacion_id, porcentaje_reservorio } = req.body;
@@ -90,6 +98,7 @@ router.put('/:id', autenticarToken, autorizarRol('admin', 'editor'), async (req,
     }
 });
 
+// DELETE /api/mediciones/:id
 router.delete('/:id', autenticarToken, autorizarRol('admin', 'editor'), async (req, res) => {
     try {
         await query('DELETE FROM alertas WHERE medicion_id = $1', [req.params.id]);
