@@ -31,20 +31,12 @@ app.use(express.json({ limit: '10mb' }));
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/estaciones', require('./routes/estaciones'));
 app.use('/api/mediciones', require('./routes/mediciones'));
-app.use('/api/alertas', require('./services/alertas'));
+app.use('/api/alertas', require('./routes/alertas'));
 app.use('/api/refugios', require('./routes/refugios'));
 app.use('/api/familias', require('./routes/familias'));
 app.use('/api/personas', require('./routes/personas'));
 app.use('/api/asistencias', require('./routes/asistencias'));
 app.use('/api/vehiculos', require('./routes/vehiculos'));
-
-// Descarga de archivos Excel
-app.get('/api/descargar/:filename', (req, res) => {
-    const filePath = path.join(__dirname, 'temp', req.params.filename);
-    res.download(filePath, (err) => {
-        if (err) res.status(404).json({ error: 'Archivo no encontrado' });
-    });
-});
 
 app.get('/health', (req, res) => res.json({ status: 'OK' }));
 app.use('*', (req, res) => res.status(404).json({ error: 'Ruta no encontrada' }));
