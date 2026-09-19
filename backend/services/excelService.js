@@ -1,15 +1,12 @@
 const ExcelJS = require('exceljs');
 
-/**
- * Genera un Excel de familias afectadas y devuelve un Buffer (en memoria).
- */
 async function generarExcelFamiliasBuffer(familias, estacion, tipoAlerta, valor, fechaMedicion) {
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet('Familias afectadas');
 
-    // Encabezados
+    // Encabezados (con Teléfono)
     const headerRow = worksheet.addRow([
-        'N.º Familia', 'Responsable', 'Ubicación', 'Personas', 'Prioridad',
+        'N.º Familia', 'Responsable', 'Teléfono', 'Ubicación', 'Personas', 'Prioridad',
         'Necesidad', 'Transporte', 'Animales', 'Destino', 'Estado'
     ]);
     headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
@@ -22,6 +19,7 @@ async function generarExcelFamiliasBuffer(familias, estacion, tipoAlerta, valor,
         worksheet.addRow([
             f.numero_familia || '',
             f.responsable || '',
+            f.telefono || '',
             f.ubicacion || '',
             f.cantidad_integrantes || 0,
             f.prioridad || '',
@@ -33,29 +31,31 @@ async function generarExcelFamiliasBuffer(familias, estacion, tipoAlerta, valor,
         ]);
     });
 
-    // Información adicional a la derecha (columna L)
+    // Información adicional a la derecha (columna M)
     const fechaTexto = fechaMedicion ? new Date(fechaMedicion).toLocaleString() : 'N/A';
     const valorTexto = (valor !== null && valor !== undefined) ? valor : 'N/A';
 
-    const titleCell = worksheet.getCell('L1');
+    const titleCell = worksheet.getCell('M1');
     titleCell.value = `ALERTA ${tipoAlerta} - Estación: ${estacion.nombre}`;
     titleCell.font = { bold: true, size: 14 };
 
-    const detailCell = worksheet.getCell('L2');
+    const detailCell = worksheet.getCell('M2');
     detailCell.value = `Fecha: ${fechaTexto} | Valor: ${valorTexto}`;
     detailCell.font = { italic: true };
 
-    worksheet.getColumn(1).width = 12;
-    worksheet.getColumn(2).width = 20;
-    worksheet.getColumn(3).width = 30;
-    worksheet.getColumn(4).width = 10;
-    worksheet.getColumn(5).width = 12;
-    worksheet.getColumn(6).width = 25;
-    worksheet.getColumn(7).width = 12;
-    worksheet.getColumn(8).width = 20;
-    worksheet.getColumn(9).width = 20;
-    worksheet.getColumn(10).width = 15;
-    worksheet.getColumn(12).width = 50;
+    // Anchos
+    worksheet.getColumn(1).width = 12;   // N.º
+    worksheet.getColumn(2).width = 20;   // Responsable
+    worksheet.getColumn(3).width = 18;   // Teléfono
+    worksheet.getColumn(4).width = 30;   // Ubicación
+    worksheet.getColumn(5).width = 10;   // Personas
+    worksheet.getColumn(6).width = 12;   // Prioridad
+    worksheet.getColumn(7).width = 25;   // Necesidad
+    worksheet.getColumn(8).width = 12;   // Transporte
+    worksheet.getColumn(9).width = 20;   // Animales
+    worksheet.getColumn(10).width = 20;  // Destino
+    worksheet.getColumn(11).width = 15;  // Estado
+    worksheet.getColumn(13).width = 50;  // Info adicional
 
     const buffer = await workbook.xlsx.writeBuffer();
     const filename = `alerta_${estacion.id}_${Date.now()}.xlsx`;
