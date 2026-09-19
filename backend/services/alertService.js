@@ -17,6 +17,7 @@ async function verificarYGenerarAlertaAutomatica(medicion, estacion) {
 
         if (!tipoAlerta) return { alertaGenerada: false, buffer: null, filename: null };
 
+        // Trae todas las columnas, incluido telefono
         const familiasRes = await query(
             `SELECT f.*,
                 (SELECT COUNT(*) FROM personas p WHERE p.familia_id = f.id AND p.activo = true) as cantidad_integrantes
