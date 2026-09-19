@@ -41,7 +41,6 @@ async function verificarYGenerarAlertaAutomatica(medicion, estacion) {
             [estacion.id, medicion.id, tipoAlerta, filename, `Alerta automática ${tipoAlerta}`]
         );
 
-        // Convertir buffer a base64 para enviar en JSON
         const bufferBase64 = buffer.toString('base64');
         return { alertaGenerada: true, buffer: bufferBase64, filename };
     } catch (error) {
